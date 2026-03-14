@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWARM — Decentralized Multi-Agent Coordination Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #060810;
+    --surface: #0c1020;
+    --surface2: #111827;
+    --border: #1e2d45;
+    --border2: #243550;
+    --accent: #00e5ff;
+    --accent2: #0090a8;
+    --accent3: #ff6b35;
+    --accent4: #7c3aed;
+    --text: #e2eaf6;
+    --text2: #7a90b0;
+    --text3: #4a6080;
+    --green: #00ff88;
+    --red: #ff4466;
+    --yellow: #ffd700;
+    --panel-w: 300px;
+    --metrics-h: 160px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--text2); font-weight: 400; font-size: 11px; letter-spacing: 0.05em; margin-left: 12px; }
+
+  .header-controls { display: flex; gap: 8px; align-items: center; }
+
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: var(--bg); }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.paused { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); animation: none; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── LEFT PANEL ── */
+  .panel-left {
+    width: var(--panel-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .panel-section {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
+  }
+  .panel-section:last-child { border-bottom: none; flex: 1; overflow-y: auto; }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── BEHAVIOR SELECTOR ── */
+  .behavior-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .beh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 7px 6px;
+    cursor: pointer;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    line-height: 1.4;
+  }
+  .beh-btn:hover { border-color: var(--accent2); color: var(--accent); }
+  .beh-btn.active {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: inset 0 0 12px rgba(0,229,255,0.05);
+  }
+
+  /* ── SLIDERS ── */
+  .param-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 6px;
+  }
+  .param-label {
+    color: var(--text2);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    width: 95px;
+    flex-shrink: 0;
+  }
+  .param-val {
+    color: var(--accent);
+    font-size: 10px;
+    width: 38px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  input[type=range] {
+    flex: 1;
+    height: 2px;
+    -webkit-appearance: none;
+    background: var(--border2);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--accent2);
+  }
+  input[type=range]:hover { background: var(--accent2); }
+
+  /* ── PRESETS ── */
+  .preset-list { display: flex; flex-direction: column; gap: 4px; }
+  .preset-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 7px 10px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { border-color: var(--accent3); color: var(--text); }
+  .preset-tag {
+    font-size: 8px;
+    padding: 2px 5px;
+    background: rgba(255,107,53,0.15);
+    border: 1px solid rgba(255,107,53,0.3);
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── VIZ TOGGLES ── */
+  .viz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .viz-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 4px 0;
+    transition: color 0.15s;
+  }
+  .viz-toggle.on { color: var(--text2); }
+  .toggle-box {
+    width: 14px; height: 14px;
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .viz-toggle.on .toggle-box {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.15);
+  }
+  .toggle-box::after { content: ''; }
+  .viz-toggle.on .toggle-box::after {
+    content: '✓';
+    font-size: 9px;
+    color: var(--accent);
+  }
+
+  /* ── CANVAS AREA ── */
+  .canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #simCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* ── OVERLAY INFO ── */
+  .canvas-overlay {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 10px;
+    color: var(--text3);
+    pointer-events: none;
+    line-height: 1.8;
+  }
+  .canvas-overlay .frame-info { color: var(--text2); }
+
+  .behavior-label {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(0,229,255,0.4);
+    pointer-events: none;
+  }
+
+  /* ── RIGHT PANEL ── */
+  .panel-right {
+    width: 240px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* ── METRICS ── */
+  .metric-block {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-name {
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .metric-value {
+    font-size: 20px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .metric-value.warn { color: var(--yellow); }
+  .metric-value.alert { color: var(--red); }
+  .metric-sub { font-size: 9px; color: var(--text3); margin-top: 2px; }
+
+  /* ── SPARKLINE ── */
+  .sparkline-wrap {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .spark-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  canvas.sparkline { width: 100%; height: 40px; display: block; }
+
+  /* ── DENSITY MAP ── */
+  .density-wrap {
+    padding: 8px 14px;
+    flex: 1;
+  }
+  canvas.density-map { width: 100%; display: block; border: 1px solid var(--border); }
+
+  /* ── AGENT INFO ── */
+  .agent-inspect {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 9px;
+    color: var(--text2);
+    line-height: 2;
+  }
+  .agent-inspect .ai-title { color: var(--accent3); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  /* ── TOOLTIP ── */
+  .tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-size: 10px;
+    padding: 6px 10px;
+    pointer-events: none;
+    z-index: 100;
+    display: none;
+  }
+
+  /* ── EXPERIMENT MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    padding: 24px;
+    width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .modal textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 10px;
+    height: 200px;
+    resize: vertical;
+    outline: none;
+  }
+  .modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* ── NOTIFICATION ── */
+  .notif {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 10px;
+    padding: 8px 14px;
+    z-index: 200;
+    transform: translateY(100px);
+    transition: transform 0.3s;
+    pointer-events: none;
+  }
+  .notif.show { transform: translateY(0); }
+
+  /* ── INTERACTION HINT ── */
+  .hints {
+    position: absolute;
+    bottom: 30px;
+    right: 12px;
+    font-size: 9px;
+    color: var(--text3);
+    text-align: right;
+    pointer-events: none;
+    line-height: 1.9;
+  }
+
+  select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 8px;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">SWARM <span>Decentralized Multi-Agent Coordination Simulator v2.0</span></div>
+  </div>
+  <div class="header-controls">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText" style="font-size:9px;color:var(--text3);letter-spacing:0.1em">RUNNING</span>
+    <button class="btn" id="btnStep">STEP</button>
+    <button class="btn active" id="btnPause">PAUSE</button>
+    <button class="btn" id="btnReset">RESET</button>
+    <button class="btn" id="btnRandomize">RANDOMIZE</button>
+    <button class="btn" id="btnSave">SAVE CONFIG</button>
+    <button class="btn" id="btnLoad">LOAD CONFIG</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+
+    <div class="panel-section">
+      <div class="section-title">Behavior Mode</div>
+      <div class="behavior-grid">
+        <button class="beh-btn active" data-beh="flocking">Boids<br>Flocking</button>
+        <button class="beh-btn" data-beh="formation">Formation<br>Control</button>
+        <button class="beh-btn" data-beh="exploration">Distributed<br>Explore</button>
+        <button class="beh-btn" data-beh="consensus">Consensus<br>Dynamics</button>
+        <button class="beh-btn" data-beh="leader">Leader–<br>Follower</button>
+        <button class="beh-btn" data-beh="fields">Attractor<br>Fields</button>
+        <button class="beh-btn" data-beh="foraging">Resource<br>Foraging</button>
+        <button class="beh-btn" data-beh="splitting">Split &amp;<br>Merge</button>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Formation Target</div>
+      <select id="formationType">
+        <option value="circle">Circle</option>
+        <option value="grid">Grid / Lattice</option>
+        <option value="line">Line</option>
+        <option value="v">V-Shape</option>
+        <option value="triangle">Triangle</option>
+        <option value="hex">Hexagon</option>
+      </select>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Swarm Parameters</div>
+
+      <div class="param-row">
+        <span class="param-label">Agents</span>
+        <input type="range" id="pAgents" min="10" max="600" value="120" step="5">
+        <span class="param-val" id="vAgents">120</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Sense Radius</span>
+        <input type="range" id="pSense" min="20" max="200" value="60" step="5">
+        <span class="param-val" id="vSense">60</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Comm Radius</span>
+        <input type="range" id="pComm" min="20" max="250" value="90" step="5">
+        <span class="param-val" id="vComm">90</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Max Speed</span>
+        <input type="range" id="pSpeed" min="0.5" max="5" value="2" step="0.1">
+        <span class="param-val" id="vSpeed">2.0</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Separation</span>
+        <input type="range" id="pSep" min="0" max="5" value="1.5" step="0.05">
+        <span class="param-val" id="vSep">1.50</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Alignment</span>
+        <input type="range" id="pAlign" min="0" max="5" value="1.2" step="0.05">
+        <span class="param-val" id="vAlign">1.20</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Cohesion</span>
+        <input type="range" id="pCohes" min="0" max="5" value="1.0" step="0.05">
+        <span class="param-val" id="vCohes">1.00</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Noise</span>
+        <input type="range" id="pNoise" min="0" max="1" value="0.05" step="0.01">
+        <span class="param-val" id="vNoise">0.05</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Obstacles</span>
+        <input type="range" id="pObstacles" min="0" max="20" value="0" step="1">
+        <span class="param-val" id="vObstacles">0</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Comm Fail %</span>
+        <input type="range" id="pCommFail" min="0" max="1" value="0" step="0.01">
+        <span class="param-val" id="vCommFail">0%</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Visualization</div>
+      <div class="viz-grid">
+        <div class="viz-toggle on" data-viz="trails" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Trails
+        </div>
+        <div class="viz-toggle" data-viz="links" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Links
+        </div>
+        <div class="viz-toggle" data-viz="sense" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Sense R.
+        </div>
+        <div class="viz-toggle on" data-viz="velocity" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Vectors
+        </div>
+        <div class="viz-toggle on" data-viz="clusters" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Clusters
+        </div>
+        <div class="viz-toggle" data-viz="predator" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Predator
+        </div>
+        <div class="viz-toggle" data-viz="heatmap" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Heat Map
+        </div>
+        <div class="viz-toggle on" data-viz="obstacles" onclick="toggleViz(this)">
+          <div class="toggle-box"></div> Obstacles
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-section" style="flex:1;overflow-y:auto">
+      <div class="section-title">Experiment Presets</div>
+      <div class="preset-list">
+        <button class="preset-btn" onclick="loadPreset('murmuration')">Starling Murmuration <span class="preset-tag">FLOCK</span></button>
+        <button class="preset-btn" onclick="loadPreset('army_ants')">Army Ant Foraging <span class="preset-tag">FORAGE</span></button>
+        <button class="preset-btn" onclick="loadPreset('fish_school')">Fish Schooling <span class="preset-tag">DENSE</span></button>
+        <button class="preset-btn" onclick="loadPreset('drone_swarm')">Military Drone Swarm <span class="preset-tag">FORM</span></button>
+        <button class="preset-btn" onclick="loadPreset('scatter_reform')">Scatter & Reform <span class="preset-tag">SPLIT</span></button>
+        <button class="preset-btn" onclick="loadPreset('predator_flee')">Predator Evasion <span class="preset-tag">EVADE</span></button>
+        <button class="preset-btn" onclick="loadPreset('search_rescue')">Search & Rescue <span class="preset-tag">EXPLORE</span></button>
+        <button class="preset-btn" onclick="loadPreset('consensus_demo')">Consensus Demo <span class="preset-tag">SYNC</span></button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap">
+    <canvas id="simCanvas"></canvas>
+    <div class="canvas-overlay">
+      <div class="frame-info" id="fpsDisplay">FPS: —</div>
+      <div id="frameCount">FRAME: 0</div>
+      <div id="agentCountDisplay">AGENTS: —</div>
+    </div>
+    <div class="behavior-label" id="behaviorLabel">BOIDS FLOCKING</div>
+    <div class="hints">
+      [CLICK] Place obstacle / attractor<br>
+      [SHIFT+CLICK] Spawn predator<br>
+      [DRAG] Pan view
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="panel-section">
+      <div class="section-title">Live Metrics</div>
+    </div>
+
+    <div class="metric-block">
+      <div class="metric-name">Avg Inter-Agent Distance</div>
+      <div class="metric-value" id="mDist">—</div>
+      <div class="metric-sub">pixels</div>
+    </div>
+    <div class="metric-block">
+      <div class="metric-name">Active Clusters</div>
+      <div class="metric-value" id="mClusters">—</div>
+      <div class="metric-sub">detected groups</div>
+    </div>
+    <div class="metric-block">
+      <div class="metric-name">Spatial Coverage</div>
+      <div class="metric-value" id="mCoverage">—</div>
+      <div class="metric-sub">% of arena</div>
+    </div>
+    <div class="metric-block">
+      <div class="metric-name">Avg Speed</div>
+      <div class="metric-value" id="mSpeed">—</div>
+      <div class="metric-sub">units/frame</div>
+    </div>
+    <div class="metric-block">
+      <div class="metric-name">Heading Consensus</div>
+      <div class="metric-value" id="mConsensus">—</div>
+      <div class="metric-sub">alignment score 0→1</div>
+    </div>
+
+    <div class="sparkline-wrap">
+      <div class="spark-label">Coverage over time</div>
+      <canvas class="sparkline" id="sparkCoverage" height="40"></canvas>
+    </div>
+    <div class="sparkline-wrap">
+      <div class="spark-label">Avg distance over time</div>
+      <canvas class="sparkline" id="sparkDist" height="40"></canvas>
+    </div>
+    <div class="density-wrap">
+      <div class="spark-label">Density map</div>
+      <canvas class="density-map" id="densityMap" width="212" height="120"></canvas>
+    </div>
+
+    <div class="agent-inspect" id="agentInspect">
+      <div class="ai-title">Agent Inspector</div>
+      Click on an agent to inspect
+    </div>
+  </div>
+
+</div>
+
+<!-- SAVE/LOAD MODAL -->
+<div class="modal-overlay" id="configModal">
+  <div class="modal">
+    <div class="modal-title">Configuration</div>
+    <textarea id="configText" placeholder="JSON config here..."></textarea>
+    <div class="modal-btns">
+      <button class="btn active" id="btnImport">IMPORT</button>
+      <button class="btn" onclick="document.getElementById('configModal').classList.remove('open')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  SWARM COORDINATION SIMULATOR
+//  Fully decentralized multi-agent system
+// ═══════════════════════════════════════════════════════════════
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+// ── STATE ────────────────────────────────────────────────────
+const sim = {
+  running: true,
+  frame: 0,
+  dt: 1,
+  behavior: 'flocking',
+  formation: 'circle',
+  formationPhase: 0, // 0-1 morphing
+  viz: {
+    trails: true,
+    links: false,
+    sense: false,
+    velocity: true,
+    clusters: true,
+    predator: false,
+    heatmap: false,
+    obstacles: true,
+  },
+  params: {
+    agentCount: 120,
+    senseRadius: 60,
+    commRadius: 90,
+    maxSpeed: 2,
+    separation: 1.5,
+    alignment: 1.2,
+    cohesion: 1.0,
+    noise: 0.05,
+    obstacleCount: 0,
+    commFail: 0,
+  },
+  width: 0,
+  height: 0,
+};
+
+let agents = [];
+let obstacles = [];
+let resources = [];
+let predator = null;
+let leaderAgent = null;
+let selectedAgent = null;
+
+// Spatial hash grid
+let spatialGrid = {};
+const CELL_SIZE = 80;
+
+// Metrics history
+const metricsHistory = {
+  coverage: [],
+  dist: [],
+  maxLen: 120,
+};
+
+// Trail buffer
+let trailCanvas, trailCtx;
+
+// Colors for clusters
+const CLUSTER_COLORS = [
+  '#00e5ff','#ff6b35','#7c3aed','#00ff88',
+  '#ffd700','#ff4466','#64b5f6','#ff80ab',
+];
+
+// ── RESIZE ───────────────────────────────────────────────────
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  sim.width = wrap.clientWidth;
+  sim.height = wrap.clientHeight;
+  canvas.width = sim.width * dpr;
+  canvas.height = sim.height * dpr;
+  canvas.style.width = sim.width + 'px';
+  canvas.style.height = sim.height + 'px';
+  ctx.scale(dpr, dpr);
+
+  // Recreate trail canvas
+  trailCanvas = document.createElement('canvas');
+  trailCanvas.width = canvas.width;
+  trailCanvas.height = canvas.height;
+  trailCtx = trailCanvas.getContext('2d');
+  trailCtx.scale(dpr, dpr);
+}
+
+// ── AGENT CLASS ──────────────────────────────────────────────
+class Agent {
+  constructor(id, x, y) {
+    this.id = id;
+    this.x = x;
+    this.y = y;
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 0.5 + Math.random() * sim.params.maxSpeed;
+    this.vx = Math.cos(ang) * sp;
+    this.vy = Math.sin(ang) * sp;
+    this.heading = ang;
+    this.cluster = 0;
+    this.state = 'normal'; // normal, exploring, carrying, fleeing
+    this.energy = 1.0;
+    this.targetX = -1;
+    this.targetY = -1;
+    this.formX = 0;
+    this.formY = 0;
+    this.trail = [];
+    this.neighbors = [];
+    this.color = '#00e5ff';
+  }
+
+  get speed() {
+    return Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+  }
+}
+
+// ── OBSTACLE CLASS ───────────────────────────────────────────
+class Obstacle {
+  constructor(x, y, r) {
+    this.x = x; this.y = y; this.r = r || (20 + Math.random() * 30);
+  }
+}
+
+// ── RESOURCE CLASS ───────────────────────────────────────────
+class Resource {
+  constructor(x, y) {
+    this.x = x; this.y = y; this.r = 8;
+    this.collected = false;
+    this.collectedBy = -1;
+    this.value = 1;
+  }
+}
+
+// ── INIT SIMULATION ──────────────────────────────────────────
+function initSim() {
+  const n = sim.params.agentCount;
+  agents = [];
+  for (let i = 0; i < n; i++) {
+    const x = 50 + Math.random() * (sim.width - 100);
+    const y = 50 + Math.random() * (sim.height - 100);
+    agents.push(new Agent(i, x, y));
+  }
+
+  // Leader
+  leaderAgent = agents[0];
+  leaderAgent.isLeader = true;
+
+  // Predator
+  if (sim.viz.predator) {
+    predator = { x: sim.width / 2, y: 30, vx: 1, vy: 0, speed: 3 };
+  }
+
+  // Obstacles
+  obstacles = [];
+  for (let i = 0; i < sim.params.obstacleCount; i++) {
+    obstacles.push(new Obstacle(
+      80 + Math.random() * (sim.width - 160),
+      80 + Math.random() * (sim.height - 160)
+    ));
+  }
+
+  // Resources for foraging
+  resources = [];
+  if (sim.behavior === 'foraging') {
+    for (let i = 0; i < 20; i++) {
+      resources.push(new Resource(
+        80 + Math.random() * (sim.width - 160),
+        80 + Math.random() * (sim.height - 160)
+      ));
+    }
+  }
+
+  // Clear trails
+  if (trailCtx) {
+    trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+  }
+
+  sim.frame = 0;
+  computeFormationTargets();
+}
+
+// ── SPATIAL HASH ─────────────────────────────────────────────
+function buildSpatialHash() {
+  spatialGrid = {};
+  for (let i = 0; i < agents.length; i++) {
+    const a = agents[i];
+    const cx = Math.floor(a.x / CELL_SIZE);
+    const cy = Math.floor(a.y / CELL_SIZE);
+    const key = cx + ',' + cy;
+    if (!spatialGrid[key]) spatialGrid[key] = [];
+    spatialGrid[key].push(i);
+  }
+}
+
+function getNeighbors(a, radius) {
+  const r2 = radius * radius;
+  const cells = Math.ceil(radius / CELL_SIZE) + 1;
+  const cx = Math.floor(a.x / CELL_SIZE);
+  const cy = Math.floor(a.y / CELL_SIZE);
+  const result = [];
+  for (let dx = -cells; dx <= cells; dx++) {
+    for (let dy = -cells; dy <= cells; dy++) {
+      const key = (cx + dx) + ',' + (cy + dy);
+      const cell = spatialGrid[key];
+      if (!cell) continue;
+      for (let i = 0; i < cell.length; i++) {
+        const b = agents[cell[i]];
+        if (b === a) continue;
+        const ddx = b.x - a.x, ddy = b.y - a.y;
+        if (ddx * ddx + ddy * ddy <= r2) result.push(b);
+      }
+    }
+  }
+  return result;
+}
+
+// ── FORMATION TARGETS ────────────────────────────────────────
+function computeFormationTargets() {
+  const n = agents.length;
+  const cx = sim.width / 2, cy = sim.height / 2;
+  const type = sim.formation;
+
+  for (let i = 0; i < n; i++) {
+    let tx = cx, ty = cy;
+    if (type === 'circle') {
+      const ang = (i / n) * Math.PI * 2;
+      const r = Math.min(sim.width, sim.height) * 0.3;
+      tx = cx + Math.cos(ang) * r;
+      ty = cy + Math.sin(ang) * r;
+    } else if (type === 'grid') {
+      const cols = Math.ceil(Math.sqrt(n));
+      const rows = Math.ceil(n / cols);
+      const spacing = 28;
+      const c = i % cols, r = Math.floor(i / cols);
+      tx = cx + (c - cols / 2) * spacing;
+      ty = cy + (r - rows / 2) * spacing;
+    } else if (type === 'line') {
+      const spacing = Math.min(18, (sim.width - 100) / n);
+      tx = 50 + i * spacing;
+      ty = cy;
+    } else if (type === 'v') {
+      const half = Math.floor(n / 2);
+      const ang = Math.PI / 4;
+      if (i < half) {
+        tx = cx - (half - i) * 20 * Math.cos(ang);
+        ty = cy + (half - i) * 20 * Math.sin(ang);
+      } else {
+        const j = i - half;
+        tx = cx + j * 20 * Math.cos(ang);
+        ty = cy + j * 20 * Math.sin(ang);
+      }
+    } else if (type === 'triangle') {
+      const side = Math.ceil(Math.sqrt(n * 2));
+      const row = Math.floor((-1 + Math.sqrt(1 + 8 * i)) / 2);
+      const col = i - row * (row + 1) / 2;
+      tx = cx + (col - row / 2) * 22;
+      ty = cy + row * 19 - (side * 19 / 3);
+    } else if (type === 'hex') {
+      const rings = Math.ceil((Math.sqrt(3 * n) - 1) / 3);
+      if (i === 0) { tx = cx; ty = cy; }
+      else {
+        let count = 1, ring = 1;
+        while (count + 6 * ring <= i) { count += 6 * ring; ring++; }
+        const posInRing = i - count;
+        const side = Math.floor(posInRing / ring);
+        const posInSide = posInRing % ring;
+        const sp = 24;
+        const hexAngles = [0, Math.PI / 3, 2 * Math.PI / 3, Math.PI, 4 * Math.PI / 3, 5 * Math.PI / 3];
+        const startX = cx + Math.cos(hexAngles[side]) * ring * sp;
+        const startY = cy + Math.sin(hexAngles[side]) * ring * sp;
+        const nextAng = hexAngles[(side + 2) % 6];
+        tx = startX + Math.cos(nextAng) * posInSide * sp;
+        ty = startY + Math.sin(nextAng) * posInSide * sp;
+      }
+    }
+
+    agents[i].formX = tx;
+    agents[i].formY = ty;
+  }
+}
+
+// ── BEHAVIOR ALGORITHMS ──────────────────────────────────────
+
+// 1. Boids Flocking
+function behaviorFlocking(a, neighbors) {
+  let sx = 0, sy = 0; // separation
+  let ax = 0, ay = 0; // alignment
+  let cx = 0, cy = 0; // cohesion
+  let nc = 0;
+
+  for (const b of neighbors) {
+    if (Math.random() < sim.params.commFail) continue; // comms failure
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+
+    // Separation
+    if (dist < sim.params.senseRadius * 0.4) {
+      sx += dx / (dist * dist);
+      sy += dy / (dist * dist);
+    }
+
+    // Alignment
+    ax += b.vx; ay += b.vy;
+
+    // Cohesion
+    cx += b.x; cy += b.y;
+    nc++;
+  }
+
+  let fx = 0, fy = 0;
+  if (nc > 0) {
+    fx += sx * sim.params.separation;
+    fy += sy * sim.params.separation;
+    fx += (ax / nc) * sim.params.alignment;
+    fy += (ay / nc) * sim.params.alignment;
+    fx += ((cx / nc) - a.x) * sim.params.cohesion * 0.01;
+    fy += ((cy / nc) - a.y) * sim.params.cohesion * 0.01;
+  }
+  return { fx, fy };
+}
+
+// 2. Formation Control
+function behaviorFormation(a, neighbors) {
+  const dx = a.formX - a.x, dy = a.formY - a.y;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+  let fx = dx * 0.05 * sim.params.cohesion;
+  let fy = dy * 0.05 * sim.params.cohesion;
+
+  // Still keep some separation
+  let sx = 0, sy = 0;
+  for (const b of neighbors) {
+    const bx = a.x - b.x, by = a.y - b.y;
+    const bd = Math.sqrt(bx * bx + by * by) || 0.001;
+    if (bd < 20) { sx += bx / (bd * bd); sy += by / (bd * bd); }
+  }
+  fx += sx * sim.params.separation * 0.5;
+  fy += sy * sim.params.separation * 0.5;
+
+  return { fx, fy };
+}
+
+// 3. Distributed Exploration
+function behaviorExploration(a, neighbors) {
+  // Repel from neighbors to spread out
+  let fx = 0, fy = 0;
+  for (const b of neighbors) {
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    const repel = Math.max(0, sim.params.senseRadius - dist);
+    fx += (dx / dist) * repel * 0.04 * sim.params.separation;
+    fy += (dy / dist) * repel * 0.04 * sim.params.separation;
+  }
+
+  // Levy flight random walk component
+  if (Math.random() < 0.01) {
+    const ang = Math.random() * Math.PI * 2;
+    a.vx += Math.cos(ang) * 2;
+    a.vy += Math.sin(ang) * 2;
+  }
+  return { fx, fy };
+}
+
+// 4. Consensus Dynamics
+function behaviorConsensus(a, neighbors) {
+  // Converge toward average heading
+  let avgVx = 0, avgVy = 0, n = 0;
+  for (const b of neighbors) {
+    if (Math.random() < sim.params.commFail) continue;
+    avgVx += b.vx; avgVy += b.vy;
+    n++;
+  }
+  let fx = 0, fy = 0;
+  if (n > 0) {
+    fx = (avgVx / n - a.vx) * sim.params.alignment * 0.3;
+    fy = (avgVy / n - a.vy) * sim.params.alignment * 0.3;
+    // Mild cohesion
+    let cx = 0, cy = 0;
+    for (const b of neighbors) { cx += b.x; cy += b.y; }
+    fx += ((cx / n) - a.x) * 0.002 * sim.params.cohesion;
+    fy += ((cy / n) - a.y) * 0.002 * sim.params.cohesion;
+  }
+  return { fx, fy };
+}
+
+// 5. Leader-Follower
+function behaviorLeader(a, neighbors) {
+  if (a.isLeader) {
+    // Leader does random walk with bias
+    if (sim.frame % 180 === 0) {
+      const ang = Math.random() * Math.PI * 2;
+      a.targetX = sim.width / 2 + Math.cos(ang) * (sim.width * 0.3);
+      a.targetY = sim.height / 2 + Math.sin(ang) * (sim.height * 0.3);
+    }
+    const dx = (a.targetX || sim.width / 2) - a.x;
+    const dy = (a.targetY || sim.height / 2) - a.y;
+    return { fx: dx * 0.02, fy: dy * 0.02 };
+  }
+
+  // Followers: follow nearest agent (prefer leader)
+  let fx = 0, fy = 0;
+  const ldx = leaderAgent.x - a.x, ldy = leaderAgent.y - a.y;
+  const ldist = Math.sqrt(ldx * ldx + ldy * ldy) || 0.001;
+  fx += (ldx / ldist) * sim.params.cohesion * 0.5;
+  fy += (ldy / ldist) * sim.params.cohesion * 0.5;
+
+  // Separation from neighbors
+  for (const b of neighbors) {
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    if (d < 20) { fx += dx / (d * d) * sim.params.separation * 0.2; fy += dy / (d * d) * sim.params.separation * 0.2; }
+  }
+  return { fx, fy };
+}
+
+// 6. Attractor / Repulsor Fields
+function behaviorFields(a, neighbors) {
+  const cx = sim.width / 2, cy = sim.height / 2;
+  let fx = 0, fy = 0;
+
+  // Multiple rotating attractors
+  for (let k = 0; k < 3; k++) {
+    const ang = (sim.frame * 0.008 + k * Math.PI * 2 / 3);
+    const ax = cx + Math.cos(ang) * sim.width * 0.2;
+    const ay = cy + Math.sin(ang) * sim.height * 0.2;
+    const dx = ax - a.x, dy = ay - a.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    fx += (dx / dist) * sim.params.cohesion * 0.6;
+    fy += (dy / dist) * sim.params.cohesion * 0.6;
+  }
+
+  // Separation
+  for (const b of neighbors) {
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    if (d < 25) { fx += dx / (d * d) * sim.params.separation * 30; fy += dy / (d * d) * sim.params.separation * 30; }
+  }
+  return { fx, fy };
+}
+
+// 7. Resource Foraging
+function behaviorForaging(a, neighbors) {
+  let fx = 0, fy = 0;
+
+  if (a.state === 'carrying') {
+    // Return to center (nest)
+    const dx = sim.width / 2 - a.x, dy = sim.height / 2 - a.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    if (d < 20) { a.state = 'normal'; a.carryResource = null; }
+    else { fx += dx * 0.05; fy += dy * 0.05; }
+  } else {
+    // Search for nearest uncollected resource
+    let minDist = Infinity, nearest = null;
+    for (const r of resources) {
+      if (r.collected) continue;
+      const d = Math.hypot(r.x - a.x, r.y - a.y);
+      if (d < minDist) { minDist = d; nearest = r; }
+    }
+    if (nearest) {
+      if (minDist < 12) {
+        nearest.collected = true;
+        a.state = 'carrying';
+      } else {
+        fx += (nearest.x - a.x) * 0.01 * sim.params.cohesion;
+        fy += (nearest.y - a.y) * 0.01 * sim.params.cohesion;
+      }
+    } else {
+      // Explore
+      const exp = behaviorExploration(a, neighbors);
+      fx += exp.fx * 0.5; fy += exp.fy * 0.5;
+    }
+  }
+
+  // Separation
+  for (const b of neighbors) {
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    if (d < 18) { fx += dx / (d * d) * sim.params.separation * 20; fy += dy / (d * d) * sim.params.separation * 20; }
+  }
+  return { fx, fy };
+}
+
+// 8. Splitting / Merging
+function behaviorSplitting(a, neighbors) {
+  // Periodic split/merge driven by phase
+  const phase = (sim.frame * 0.002) % 1;
+  let fx = 0, fy = 0;
+
+  if (phase < 0.5) {
+    // Split: repel into sub-groups based on id
+    const groupAngle = (a.id % 3) * Math.PI * 2 / 3;
+    const targetX = sim.width / 2 + Math.cos(groupAngle) * sim.width * 0.25;
+    const targetY = sim.height / 2 + Math.sin(groupAngle) * sim.height * 0.25;
+    fx = (targetX - a.x) * 0.02 * sim.params.cohesion;
+    fy = (targetY - a.y) * 0.02 * sim.params.cohesion;
+  } else {
+    // Merge: all converge to center
+    fx = (sim.width / 2 - a.x) * 0.02 * sim.params.cohesion;
+    fy = (sim.height / 2 - a.y) * 0.02 * sim.params.cohesion;
+  }
+
+  // Separation
+  for (const b of neighbors) {
+    const dx = a.x - b.x, dy = a.y - b.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    if (d < 15) { fx += dx / (d * d) * sim.params.separation * 20; fy += dy / (d * d) * sim.params.separation * 20; }
+  }
+  return { fx, fy };
+}
+
+// ── PREDATOR AVOIDANCE ───────────────────────────────────────
+function applyPredatorForce(a) {
+  if (!predator || !sim.viz.predator) return { fx: 0, fy: 0 };
+  const dx = a.x - predator.x, dy = a.y - predator.y;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+  if (dist > 150) return { fx: 0, fy: 0 };
+  const strength = Math.max(0, 150 - dist) / 150;
+  return { fx: (dx / dist) * strength * 8, fy: (dy / dist) * strength * 8 };
+}
+
+// ── OBSTACLE AVOIDANCE ───────────────────────────────────────
+function applyObstacleForce(a) {
+  let fx = 0, fy = 0;
+  for (const obs of obstacles) {
+    const dx = a.x - obs.x, dy = a.y - obs.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+    const clearance = obs.r + 20;
+    if (dist < clearance) {
+      const strength = (clearance - dist) / clearance;
+      fx += (dx / dist) * strength * 5;
+      fy += (dy / dist) * strength * 5;
+    }
+  }
+  return { fx, fy };
+}
+
+// ── BOUNDARY FORCE ───────────────────────────────────────────
+function applyBoundaryForce(a) {
+  const margin = 40, strength = 0.5;
+  let fx = 0, fy = 0;
+  if (a.x < margin) fx = (margin - a.x) * strength * 0.1;
+  if (a.x > sim.width - margin) fx = (sim.width - margin - a.x) * strength * 0.1;
+  if (a.y < margin) fy = (margin - a.y) * strength * 0.1;
+  if (a.y > sim.height - margin) fy = (sim.height - margin - a.y) * strength * 0.1;
+  return { fx, fy };
+}
+
+// ── UPDATE PREDATOR ──────────────────────────────────────────
+function updatePredator() {
+  if (!predator || !sim.viz.predator) return;
+  // Predator chases nearest cluster center
+  let cx = 0, cy = 0, n = 0;
+  for (const a of agents) {
+    const dx = a.x - predator.x, dy = a.y - predator.y;
+    if (Math.hypot(dx, dy) < 200) { cx += a.x; cy += a.y; n++; }
+  }
+  if (n > 0) {
+    const tdx = cx / n - predator.x, tdy = cy / n - predator.y;
+    const d = Math.sqrt(tdx * tdx + tdy * tdy) || 0.001;
+    predator.vx += (tdx / d) * 0.3;
+    predator.vy += (tdy / d) * 0.3;
+  }
+  const spd = Math.sqrt(predator.vx * predator.vx + predator.vy * predator.vy);
+  if (spd > predator.speed) { predator.vx = predator.vx / spd * predator.speed; predator.vy = predator.vy / spd * predator.speed; }
+  predator.x += predator.vx;
+  predator.y += predator.vy;
+  // Bounce at walls
+  if (predator.x < 20 || predator.x > sim.width - 20) predator.vx *= -1;
+  if (predator.y < 20 || predator.y > sim.height - 20) predator.vy *= -1;
+}
+
+// ── CLUSTER DETECTION ────────────────────────────────────────
+function detectClusters() {
+  for (const a of agents) a.cluster = -1;
+  let cid = 0;
+  for (const a of agents) {
+    if (a.cluster !== -1) continue;
+    // BFS
+    const queue = [a];
+    a.cluster = cid;
+    let qi = 0;
+    while (qi < queue.length) {
+      const cur = queue[qi++];
+      const neighbors = getNeighbors(cur, sim.params.commRadius * 0.8);
+      for (const nb of neighbors) {
+        if (nb.cluster === -1) { nb.cluster = cid; queue.push(nb); }
+      }
+    }
+    cid++;
+  }
+  return cid;
+}
+
+// ── MAIN UPDATE ──────────────────────────────────────────────
+function update() {
+  buildSpatialHash();
+  if (sim.behavior === 'formation') computeFormationTargets();
+
+  for (const a of agents) {
+    const neighbors = getNeighbors(a, sim.params.commRadius);
+    a.neighbors = neighbors;
+
+    let fx = 0, fy = 0;
+
+    let b;
+    switch (sim.behavior) {
+      case 'flocking':   b = behaviorFlocking(a, neighbors); break;
+      case 'formation':  b = behaviorFormation(a, neighbors); break;
+      case 'exploration':b = behaviorExploration(a, neighbors); break;
+      case 'consensus':  b = behaviorConsensus(a, neighbors); break;
+      case 'leader':     b = behaviorLeader(a, neighbors); break;
+      case 'fields':     b = behaviorFields(a, neighbors); break;
+      case 'foraging':   b = behaviorForaging(a, neighbors); break;
+      case 'splitting':  b = behaviorSplitting(a, neighbors); break;
+      default: b = behaviorFlocking(a, neighbors);
+    }
+    fx += b.fx; fy += b.fy;
+
+    // Predator
+    const pf = applyPredatorForce(a);
+    fx += pf.fx; fy += pf.fy;
+
+    // Obstacles
+    const of2 = applyObstacleForce(a);
+    fx += of2.fx; fy += of2.fy;
+
+    // Boundary
+    const bf = applyBoundaryForce(a);
+    fx += bf.fx; fy += bf.fy;
+
+    // Noise
+    const noiseAng = Math.random() * Math.PI * 2;
+    fx += Math.cos(noiseAng) * sim.params.noise;
+    fy += Math.sin(noiseAng) * sim.params.noise;
+
+    // Integrate
+    a.vx += fx * sim.dt;
+    a.vy += fy * sim.dt;
+
+    // Clamp speed
+    const spd = Math.sqrt(a.vx * a.vx + a.vy * a.vy);
+    if (spd > sim.params.maxSpeed) {
+      a.vx = a.vx / spd * sim.params.maxSpeed;
+      a.vy = a.vy / spd * sim.params.maxSpeed;
+    }
+
+    a.heading = Math.atan2(a.vy, a.vx);
+    a.x += a.vx;
+    a.y += a.vy;
+
+    // Wrap (soft)
+    if (a.x < 0) a.x = 0;
+    if (a.x > sim.width) a.x = sim.width;
+    if (a.y < 0) a.y = 0;
+    if (a.y > sim.height) a.y = sim.height;
+  }
+
+  updatePredator();
+  sim.frame++;
+}
+
+// ── METRICS ──────────────────────────────────────────────────
+let metricTimer = 0;
+function updateMetrics() {
+  metricTimer++;
+  if (metricTimer % 6 !== 0) return;
+
+  // Average inter-agent distance (sample)
+  let totalDist = 0, n = 0;
+  const sample = Math.min(agents.length, 40);
+  for (let i = 0; i < sample; i++) {
+    const a = agents[Math.floor(Math.random() * agents.length)];
+    for (const b of a.neighbors.slice(0, 5)) {
+      totalDist += Math.hypot(a.x - b.x, a.y - b.y);
+      n++;
+    }
+  }
+  const avgDist = n > 0 ? totalDist / n : 0;
+  document.getElementById('mDist').textContent = avgDist.toFixed(1);
+
+  // Clusters
+  const clCount = detectClusters();
+  document.getElementById('mClusters').textContent = clCount;
+
+  // Coverage (grid cells occupied / total)
+  const gridW = 20, gridH = 14;
+  const occupied = new Set();
+  for (const a of agents) {
+    const gx = Math.floor(a.x / (sim.width / gridW));
+    const gy = Math.floor(a.y / (sim.height / gridH));
+    occupied.add(gx + ',' + gy);
+  }
+  const coverage = (occupied.size / (gridW * gridH) * 100).toFixed(0);
+  document.getElementById('mCoverage').textContent = coverage + '%';
+
+  // Avg speed
+  let totalSpd = 0;
+  for (const a of agents) totalSpd += a.speed;
+  document.getElementById('mSpeed').textContent = (totalSpd / agents.length).toFixed(2);
+
+  // Heading consensus (order parameter)
+  let sx2 = 0, sy2 = 0;
+  for (const a of agents) { sx2 += Math.cos(a.heading); sy2 += Math.sin(a.heading); }
+  const consensus = (Math.sqrt(sx2 * sx2 + sy2 * sy2) / agents.length).toFixed(3);
+  document.getElementById('mConsensus').textContent = consensus;
+
+  // Sparklines
+  metricsHistory.coverage.push(parseFloat(coverage));
+  metricsHistory.dist.push(avgDist);
+  if (metricsHistory.coverage.length > metricsHistory.maxLen) metricsHistory.coverage.shift();
+  if (metricsHistory.dist.length > metricsHistory.maxLen) metricsHistory.dist.shift();
+
+  drawSparkline('sparkCoverage', metricsHistory.coverage, '#00ff88', 100);
+  drawSparkline('sparkDist', metricsHistory.dist, '#00e5ff', null);
+
+  updateDensityMap();
+
+  // Agent inspector
+  if (selectedAgent) {
+    document.getElementById('agentInspect').innerHTML = `
+      <div class="ai-title">Agent #${selectedAgent.id}</div>
+      pos: ${selectedAgent.x.toFixed(1)}, ${selectedAgent.y.toFixed(1)}<br>
+      vel: ${selectedAgent.vx.toFixed(2)}, ${selectedAgent.vy.toFixed(2)}<br>
+      spd: ${selectedAgent.speed.toFixed(2)}<br>
+      hdg: ${(selectedAgent.heading * 180 / Math.PI).toFixed(1)}°<br>
+      nbrs: ${selectedAgent.neighbors.length}<br>
+      cluster: ${selectedAgent.cluster}<br>
+      state: ${selectedAgent.state}
+    `;
+  }
+}
+
+function drawSparkline(id, data, color, maxVal) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const ct = c.getContext('2d');
+  const w = c.clientWidth || 200, h = 40;
+  c.width = w; c.height = h;
+  ct.clearRect(0, 0, w, h);
+  if (data.length < 2) return;
+
+  const mx = maxVal !== null ? (maxVal || Math.max(...data) || 1) : (Math.max(...data) || 1);
+  const mn = 0;
+
+  ct.strokeStyle = color;
+  ct.lineWidth = 1.5;
+  ct.beginPath();
+  for (let i = 0; i < data.length; i++) {
+    const x = i / (data.length - 1) * w;
+    const y = h - (data[i] - mn) / (mx - mn) * h;
+    if (i === 0) ct.moveTo(x, y); else ct.lineTo(x, y);
+  }
+  ct.stroke();
+
+  // Fill area
+  ct.lineTo(w, h); ct.lineTo(0, h); ct.closePath();
+  ct.fillStyle = color + '18';
+  ct.fill();
+}
+
+function updateDensityMap() {
+  const dc = document.getElementById('densityMap');
+  const dt = dc.getContext('2d');
+  const dw = dc.width, dh = dc.height;
+  dt.clearRect(0, 0, dw, dh);
+  dt.fillStyle = '#0c1020';
+  dt.fillRect(0, 0, dw, dh);
+
+  const cellW = dw / 16, cellH = dh / 10;
+  const counts = new Array(160).fill(0);
+  for (const a of agents) {
+    const gx = Math.floor(a.x / sim.width * 16);
+    const gy = Math.floor(a.y / sim.height * 10);
+    const idx = Math.min(gy, 9) * 16 + Math.min(gx, 15);
+    counts[idx]++;
+  }
+  const maxC = Math.max(...counts, 1);
+  for (let i = 0; i < 160; i++) {
+    const gx = i % 16, gy = Math.floor(i / 16);
+    const v = counts[i] / maxC;
+    if (v < 0.01) continue;
+    // Heat: blue → cyan → green → yellow → red
+    const r = Math.min(255, Math.floor(v * 2 * 255));
+    const g = Math.min(255, Math.floor(v * 255));
+    const b = Math.max(0, Math.floor((1 - v) * 255));
+    dt.fillStyle = `rgb(${r},${g},${b})`;
+    dt.globalAlpha = 0.6 + v * 0.4;
+    dt.fillRect(gx * cellW, gy * cellH, cellW - 1, cellH - 1);
+  }
+  dt.globalAlpha = 1;
+}
+
+// ── RENDERING ────────────────────────────────────────────────
+function getClusterColor(cid) {
+  return CLUSTER_COLORS[cid % CLUSTER_COLORS.length];
+}
+
+function drawAgent(a) {
+  const size = a.isLeader ? 8 : 5;
+  const color = sim.viz.clusters ? getClusterColor(a.cluster) : (a.isLeader ? '#ffd700' : '#00e5ff');
+  const alpha = a.state === 'carrying' ? 1 : 0.9;
+
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  ctx.rotate(a.heading);
+
+  // Body triangle
+  ctx.beginPath();
+  ctx.moveTo(size * 1.8, 0);
+  ctx.lineTo(-size, -size * 0.7);
+  ctx.lineTo(-size * 0.5, 0);
+  ctx.lineTo(-size, size * 0.7);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha;
+  ctx.fill();
+
+  // Leader highlight
+  if (a.isLeader) {
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Selected highlight
+  if (a === selectedAgent) {
+    ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ff6b35';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Velocity vector
+  if (sim.viz.velocity) {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(a.x + a.vx * 6, a.y + a.vy * 6);
+    ctx.strokeStyle = 'rgba(0,229,255,0.3)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+
+  // Sense radius
+  if (sim.viz.sense && a === selectedAgent) {
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, sim.params.senseRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,229,255,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, sim.params.commRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(124,58,237,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  } else if (sim.viz.sense && Math.random() < 0.01) {
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, sim.params.senseRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,229,255,0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+}
+
+function drawLinks(a) {
+  for (const b of a.neighbors.slice(0, 4)) {
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    const dist = Math.hypot(a.x - b.x, a.y - b.y);
+    const alpha = Math.max(0, 1 - dist / sim.params.commRadius) * 0.15;
+    ctx.strokeStyle = `rgba(0,144,168,${alpha})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+}
+
+function render() {
+  // Clear
+  ctx.fillStyle = 'rgba(6,8,16,1)';
+  ctx.fillRect(0, 0, sim.width, sim.height);
+
+  // Draw trails from trail canvas
+  if (sim.viz.trails) {
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(trailCanvas, 0, 0, sim.width, sim.height);
+    ctx.globalAlpha = 1;
+  }
+
+  // Draw obstacles
+  if (sim.viz.obstacles) {
+    for (const obs of obstacles) {
+      ctx.beginPath();
+      ctx.arc(obs.x, obs.y, obs.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,68,102,0.15)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,68,102,0.5)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  // Draw resources
+  if (sim.behavior === 'foraging') {
+    for (const r of resources) {
+      if (r.collected) continue;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,255,136,0.3)';
+      ctx.fill();
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  }
+
+  // Formation target points (ghostly)
+  if (sim.behavior === 'formation') {
+    for (const a of agents) {
+      ctx.beginPath();
+      ctx.arc(a.formX, a.formY, 2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,229,255,0.15)';
+      ctx.fill();
+    }
+  }
+
+  // Links
+  if (sim.viz.links) {
+    for (const a of agents) drawLinks(a);
+  }
+
+  // Agents
+  for (const a of agents) drawAgent(a);
+
+  // Predator
+  if (sim.viz.predator && predator) {
+    ctx.save();
+    ctx.translate(predator.x, predator.y);
+    ctx.rotate(Math.atan2(predator.vy, predator.vx));
+    ctx.beginPath();
+    ctx.moveTo(12, 0);
+    ctx.lineTo(-8, -7);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-8, 7);
+    ctx.closePath();
+    ctx.fillStyle = '#ff4466';
+    ctx.fill();
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    // Aura
+    ctx.beginPath();
+    ctx.arc(predator.x, predator.y, 60, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,68,102,0.1)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Attractor field visualization
+  if (sim.behavior === 'fields') {
+    const cx = sim.width / 2, cy = sim.height / 2;
+    for (let k = 0; k < 3; k++) {
+      const ang = (sim.frame * 0.008 + k * Math.PI * 2 / 3);
+      const ax = cx + Math.cos(ang) * sim.width * 0.2;
+      const ay = cy + Math.sin(ang) * sim.height * 0.2;
+      ctx.beginPath();
+      ctx.arc(ax, ay, 20, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(124,58,237,0.4)`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(ax, ay, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#7c3aed';
+      ctx.fill();
+    }
+  }
+
+  // Update trail canvas
+  if (sim.viz.trails) {
+    trailCtx.globalAlpha = 0.96;
+    trailCtx.fillStyle = 'rgba(6,8,16,0.15)';
+    trailCtx.fillRect(0, 0, sim.width, sim.height);
+    trailCtx.globalAlpha = 0.4;
+    for (const a of agents) {
+      const color = sim.viz.clusters ? getClusterColor(a.cluster) : '#00e5ff';
+      trailCtx.beginPath();
+      trailCtx.arc(a.x, a.y, 0.8, 0, Math.PI * 2);
+      trailCtx.fillStyle = color;
+      trailCtx.fill();
+    }
+    trailCtx.globalAlpha = 1;
+  }
+}
+
+// ── FPS TRACKING ─────────────────────────────────────────────
+let lastTime = 0, fps = 0, fpsSmooth = 60;
+function mainLoop(ts) {
+  const dt = ts - lastTime;
+  lastTime = ts;
+  fps = 1000 / dt;
+  fpsSmooth = fpsSmooth * 0.9 + fps * 0.1;
+
+  document.getElementById('fpsDisplay').textContent = 'FPS: ' + fpsSmooth.toFixed(0);
+  document.getElementById('frameCount').textContent = 'FRAME: ' + sim.frame;
+  document.getElementById('agentCountDisplay').textContent = 'AGENTS: ' + agents.length;
+
+  if (sim.running) {
+    update();
+    updateMetrics();
+  }
+  render();
+
+  requestAnimationFrame(mainLoop);
+}
+
+// ── UI CONTROLS ──────────────────────────────────────────────
+function toggleViz(el) {
+  el.classList.toggle('on');
+  const key = el.getAttribute('data-viz');
+  sim.viz[key] = el.classList.contains('on');
+  if (key === 'predator') {
+    if (sim.viz.predator) {
+      predator = { x: sim.width / 2, y: 30, vx: 1, vy: 0, speed: 3 };
+    } else {
+      predator = null;
+    }
+  }
+}
+
+// Behavior buttons
+document.querySelectorAll('.beh-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.beh-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sim.behavior = btn.getAttribute('data-beh');
+    document.getElementById('behaviorLabel').textContent = btn.textContent.replace('\n', ' ').trim().toUpperCase();
+    if (sim.behavior === 'foraging') {
+      resources = [];
+      for (let i = 0; i < 25; i++) {
+        resources.push(new Resource(80 + Math.random() * (sim.width - 160), 80 + Math.random() * (sim.height - 160)));
+      }
+    }
+    if (sim.behavior === 'formation') computeFormationTargets();
+    showNotif('Behavior: ' + sim.behavior.toUpperCase());
+  });
+});
+
+// Formation type
+document.getElementById('formationType').addEventListener('change', e => {
+  sim.formation = e.target.value;
+  if (sim.behavior === 'formation') computeFormationTargets();
+});
+
+// Sliders
+function bindSlider(id, valId, paramKey, fmt) {
+  const sl = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    const v = parseFloat(sl.value);
+    sim.params[paramKey] = v;
+    vl.textContent = fmt ? fmt(v) : v;
+    if (paramKey === 'agentCount') reinitAgents();
+    if (paramKey === 'obstacleCount') reinitObstacles();
+  });
+}
+
+bindSlider('pAgents', 'vAgents', 'agentCount', v => Math.round(v));
+bindSlider('pSense', 'vSense', 'senseRadius', v => Math.round(v));
+bindSlider('pComm', 'vComm', 'commRadius', v => Math.round(v));
+bindSlider('pSpeed', 'vSpeed', 'maxSpeed', v => v.toFixed(1));
+bindSlider('pSep', 'vSep', 'separation', v => v.toFixed(2));
+bindSlider('pAlign', 'vAlign', 'alignment', v => v.toFixed(2));
+bindSlider('pCohes', 'vCohes', 'cohesion', v => v.toFixed(2));
+bindSlider('pNoise', 'vNoise', 'noise', v => v.toFixed(2));
+bindSlider('pObstacles', 'vObstacles', 'obstacleCount', v => Math.round(v));
+bindSlider('pCommFail', 'vCommFail', 'commFail', v => Math.round(v * 100) + '%');
+
+function reinitAgents() {
+  const n = Math.round(sim.params.agentCount);
+  while (agents.length < n) {
+    const x = 50 + Math.random() * (sim.width - 100);
+    const y = 50 + Math.random() * (sim.height - 100);
+    agents.push(new Agent(agents.length, x, y));
+  }
+  while (agents.length > n) agents.pop();
+  leaderAgent = agents[0];
+  leaderAgent.isLeader = true;
+}
+
+function reinitObstacles() {
+  obstacles = [];
+  for (let i = 0; i < sim.params.obstacleCount; i++) {
+    obstacles.push(new Obstacle(80 + Math.random() * (sim.width - 160), 80 + Math.random() * (sim.height - 160)));
+  }
+}
+
+// Header buttons
+document.getElementById('btnPause').addEventListener('click', () => {
+  sim.running = !sim.running;
+  const btn = document.getElementById('btnPause');
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  btn.textContent = sim.running ? 'PAUSE' : 'RESUME';
+  btn.classList.toggle('active', sim.running);
+  dot.classList.toggle('paused', !sim.running);
+  txt.textContent = sim.running ? 'RUNNING' : 'PAUSED';
+});
+
+document.getElementById('btnStep').addEventListener('click', () => {
+  if (!sim.running) { update(); render(); }
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  initSim(); showNotif('Simulation reset');
+});
+
+document.getElementById('btnRandomize').addEventListener('click', () => {
+  const params = ['pSep','pAlign','pCohes','pNoise','pSpeed'];
+  params.forEach(id => {
+    const el = document.getElementById(id);
+    const min = parseFloat(el.min), max = parseFloat(el.max);
+    el.value = (min + Math.random() * (max - min)).toFixed(2);
+    el.dispatchEvent(new Event('input'));
+  });
+  showNotif('Parameters randomized');
+});
+
+// Save/Load
+document.getElementById('btnSave').addEventListener('click', () => {
+  const config = JSON.stringify({ behavior: sim.behavior, formation: sim.formation, params: sim.params }, null, 2);
+  document.getElementById('configText').value = config;
+  document.getElementById('configModal').classList.add('open');
+});
+
+document.getElementById('btnLoad').addEventListener('click', () => {
+  document.getElementById('configText').value = '';
+  document.getElementById('configModal').classList.add('open');
+});
+
+document.getElementById('btnImport').addEventListener('click', () => {
+  try {
+    const cfg = JSON.parse(document.getElementById('configText').value);
+    if (cfg.params) Object.assign(sim.params, cfg.params);
+    if (cfg.behavior) {
+      sim.behavior = cfg.behavior;
+      document.querySelectorAll('.beh-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-beh') === sim.behavior));
+    }
+    if (cfg.formation) { sim.formation = cfg.formation; document.getElementById('formationType').value = cfg.formation; }
+    syncSlidersFromParams();
+    document.getElementById('configModal').classList.remove('open');
+    showNotif('Config loaded');
+  } catch (e) { showNotif('Invalid JSON config'); }
+});
+
+function syncSlidersFromParams() {
+  const map = { agentCount: 'pAgents', senseRadius: 'pSense', commRadius: 'pComm', maxSpeed: 'pSpeed', separation: 'pSep', alignment: 'pAlign', cohesion: 'pCohes', noise: 'pNoise', obstacleCount: 'pObstacles', commFail: 'pCommFail' };
+  for (const [k, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.value = sim.params[k];
+    el.dispatchEvent(new Event('input'));
+  }
+}
+
+// ── PRESETS ───────────────────────────────────────────────────
+function loadPreset(name) {
+  const presets = {
+    murmuration: {
+      behavior: 'flocking', formation: 'circle',
+      params: { agentCount: 300, senseRadius: 55, commRadius: 80, maxSpeed: 2.5, separation: 1.2, alignment: 1.8, cohesion: 0.8, noise: 0.08, obstacleCount: 0, commFail: 0 }
+    },
+    army_ants: {
+      behavior: 'foraging', formation: 'circle',
+      params: { agentCount: 200, senseRadius: 40, commRadius: 60, maxSpeed: 1.8, separation: 1.0, alignment: 0.8, cohesion: 1.2, noise: 0.12, obstacleCount: 5, commFail: 0 }
+    },
+    fish_school: {
+      behavior: 'flocking', formation: 'circle',
+      params: { agentCount: 250, senseRadius: 45, commRadius: 70, maxSpeed: 2.2, separation: 2.0, alignment: 1.5, cohesion: 1.3, noise: 0.03, obstacleCount: 0, commFail: 0 }
+    },
+    drone_swarm: {
+      behavior: 'formation', formation: 'grid',
+      params: { agentCount: 100, senseRadius: 70, commRadius: 120, maxSpeed: 1.5, separation: 1.8, alignment: 0.5, cohesion: 2.5, noise: 0.02, obstacleCount: 0, commFail: 0 }
+    },
+    scatter_reform: {
+      behavior: 'splitting', formation: 'circle',
+      params: { agentCount: 150, senseRadius: 60, commRadius: 100, maxSpeed: 2.8, separation: 1.5, alignment: 1.0, cohesion: 1.8, noise: 0.06, obstacleCount: 0, commFail: 0 }
+    },
+    predator_flee: {
+      behavior: 'flocking', formation: 'circle',
+      params: { agentCount: 180, senseRadius: 80, commRadius: 110, maxSpeed: 3.0, separation: 2.5, alignment: 1.5, cohesion: 0.6, noise: 0.04, obstacleCount: 0, commFail: 0 }
+    },
+    search_rescue: {
+      behavior: 'exploration', formation: 'circle',
+      params: { agentCount: 80, senseRadius: 100, commRadius: 150, maxSpeed: 2.0, separation: 2.5, alignment: 0.3, cohesion: 0.2, noise: 0.15, obstacleCount: 8, commFail: 0.1 }
+    },
+    consensus_demo: {
+      behavior: 'consensus', formation: 'circle',
+      params: { agentCount: 120, senseRadius: 60, commRadius: 90, maxSpeed: 1.5, separation: 1.2, alignment: 2.5, cohesion: 0.5, noise: 0.02, obstacleCount: 0, commFail: 0 }
+    },
+  };
+
+  const p = presets[name];
+  if (!p) return;
+  sim.behavior = p.behavior;
+  sim.formation = p.formation;
+  Object.assign(sim.params, p.params);
+  document.querySelectorAll('.beh-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-beh') === sim.behavior));
+  document.getElementById('formationType').value = sim.formation;
+  syncSlidersFromParams();
+
+  // Enable predator for flee preset
+  if (name === 'predator_flee') {
+    sim.viz.predator = true;
+    document.querySelectorAll('.viz-toggle[data-viz="predator"]').forEach(el => el.classList.add('on'));
+    predator = { x: sim.width / 2, y: sim.height / 2, vx: 2, vy: 1, speed: 3.5 };
+  }
+
+  initSim();
+  showNotif('Preset: ' + name.replace('_', ' ').toUpperCase());
+}
+
+// ── CANVAS INTERACTION ───────────────────────────────────────
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // Shift+click: spawn predator
+  if (e.shiftKey) {
+    sim.viz.predator = true;
+    predator = { x: mx, y: my, vx: 1, vy: 0.5, speed: 3.2 };
+    document.querySelectorAll('.viz-toggle[data-viz="predator"]').forEach(el => el.classList.add('on'));
+    showNotif('Predator spawned');
+    return;
+  }
+
+  // Check if clicking on agent
+  let clicked = null;
+  for (const a of agents) {
+    if (Math.hypot(a.x - mx, a.y - my) < 12) { clicked = a; break; }
+  }
+  if (clicked) {
+    selectedAgent = clicked;
+    return;
+  }
+  selectedAgent = null;
+
+  // Place obstacle
+  if (sim.behavior !== 'fields') {
+    obstacles.push(new Obstacle(mx, my, 20 + Math.random() * 20));
+    sim.params.obstacleCount = obstacles.length;
+    document.getElementById('pObstacles').value = obstacles.length;
+    document.getElementById('vObstacles').textContent = obstacles.length;
+  }
+});
+
+// ── NOTIFICATION ─────────────────────────────────────────────
+let notifTimer = null;
+function showNotif(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ── BOOT ─────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  resizeCanvas();
+  initSim();
+});
+
+resizeCanvas();
+initSim();
+requestAnimationFrame(mainLoop);
+</script>
+</body>
+</html>

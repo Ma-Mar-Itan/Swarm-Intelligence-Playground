@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swarm Intelligence Research Sandbox v3.0</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --i0:#fff;--i1:#d4dce8;--i2:#8a9bb5;--i3:#4e6180;--i4:#2a3a52;
+  --b0:#08090d;--b1:#0d1117;--b2:#111822;--b3:#16202e;--b4:#1c2b3d;
+  --rs:rgba(255,255,255,.06);--rm:rgba(255,255,255,.12);
+  --blue:#4d9fff;--teal:#00c4b4;--amber:#f5a623;--red:#e8445a;--green:#2dd68c;--purple:#9b7fff;--ice:#c8f0ff;--pink:#ff6eb4;
+  --fu:'IBM Plex Sans',sans-serif;--fm:'IBM Plex Mono',monospace;--fc:'IBM Plex Sans Condensed',sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--b0);color:var(--i1);font-family:var(--fu);font-size:12px}
+
+/* ─── LAYOUT ─── */
+body{display:grid;
+  grid-template-rows:44px 28px 1fr 26px;
+  grid-template-columns:270px 1fr 268px;
+  grid-template-areas:"tb tb tb" "tabs tabs tabs" "lp cv rp" "ft ft ft"}
+
+/* ─── TOPBAR ─── */
+#tb{grid-area:tb;background:var(--b1);border-bottom:1px solid var(--rm);display:flex;align-items:center;padding:0 16px;gap:0;z-index:30}
+.tlogo{font-family:var(--fc);font-size:13px;font-weight:700;letter-spacing:.07em;color:var(--i0);text-transform:uppercase;margin-right:6px}
+.tsub{font-family:var(--fm);font-size:9px;color:var(--i3);letter-spacing:.1em;text-transform:uppercase;margin-right:24px}
+.tdiv{width:1px;height:20px;background:var(--rm);margin:0 14px}
+.tinfo{font-family:var(--fm);font-size:10px;color:var(--i3);letter-spacing:.05em}
+.tinfo strong{color:var(--i2);font-weight:500}
+.tsp{flex:1}
+.tctrls{display:flex;align-items:center;gap:4px}
+.pill{font-family:var(--fm);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:4px 11px;background:transparent;border:1px solid var(--rm);color:var(--i2);cursor:pointer;transition:border-color .15s,color .15s,background .15s;white-space:nowrap}
+.pill:hover{border-color:var(--blue);color:var(--blue)}
+.pill.on{background:var(--blue);border-color:var(--blue);color:var(--b0)}
+.pill.grn{background:var(--green);border-color:var(--green);color:var(--b0)}
+.pill.amb:hover{border-color:var(--amber);color:var(--amber)}
+.rdot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(45,214,140,.2);animation:blink 2.4s ease infinite}
+.rdot.p{background:var(--amber);box-shadow:0 0 0 2px rgba(245,166,35,.2);animation:none}
+.rlbl{font-family:var(--fm);font-size:9px;letter-spacing:.14em;color:var(--i2);text-transform:uppercase}
+.sring{display:flex;align-items:center;gap:6px;padding:3px 9px;border:1px solid var(--rm);background:var(--b2)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ─── PANEL TABS ─── */
+#tabs{grid-area:tabs;background:var(--b1);border-bottom:1px solid var(--rm);display:flex;align-items:stretch;padding:0 0 0 270px}
+.tab{font-family:var(--fm);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:0 16px;border:none;background:transparent;color:var(--i3);cursor:pointer;border-right:1px solid var(--rs);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab:hover{color:var(--i1)}
+.tab.on{color:var(--i0);border-bottom-color:var(--blue)}
+
+/* ─── SHARED PANEL ─── */
+.psec{border-bottom:1px solid var(--rs);padding:12px 14px}
+.psec:last-child{border-bottom:none}
+.sh{font-family:var(--fm);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--i3);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.sh::after{content:'';flex:1;height:1px;background:var(--rs)}
+.sh2{font-family:var(--fm);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--i3);margin-bottom:6px}
+
+/* ─── LEFT PANEL ─── */
+#lp{grid-area:lp;background:var(--b1);border-right:1px solid var(--rm);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+#lp::-webkit-scrollbar{width:3px}
+#lp::-webkit-scrollbar-thumb{background:var(--rm)}
+
+/* Left panel panes */
+.lpane{display:none;flex-direction:column;flex:1}
+.lpane.on{display:flex}
+
+/* mode buttons */
+.mbtn{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border:1px solid transparent;background:transparent;transition:background .1s;color:var(--i3);font-family:var(--fu);font-size:11px;text-align:left;width:100%}
+.mbtn:hover{background:var(--b3);color:var(--i1)}
+.mbtn.on{background:var(--b3);border-color:var(--rm);color:var(--i0)}
+.mbtn.on .mbar{background:var(--blue)}
+.mbar{width:3px;height:18px;background:transparent;flex-shrink:0;transition:background .12s}
+.mlbl{font-weight:500;font-size:11px;flex:1}
+.mtag{font-family:var(--fm);font-size:8px;letter-spacing:.1em;padding:1px 4px;border:1px solid var(--rm);color:var(--i3);text-transform:uppercase}
+.mbtn.on .mtag{border-color:var(--blue);color:var(--blue)}
+
+/* param rows */
+.prow{display:grid;grid-template-columns:1fr 76px 32px;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--rs)}
+.prow:last-child{border-bottom:none}
+.pnm{font-size:10px;color:var(--i2)}
+.psl{width:76px;height:2px;-webkit-appearance:none;background:var(--b4);outline:none;cursor:pointer}
+.psl::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--blue);border-radius:50%}
+.pvl{font-family:var(--fm);font-size:10px;color:var(--i0);text-align:right}
+.fsel{width:100%;background:var(--b2);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:10px;padding:6px 9px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234e6180'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;margin-top:3px}
+.fsel:focus{border-color:var(--blue)}
+.finput{width:100%;background:var(--b2);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:10px;padding:6px 9px;outline:none;margin-top:3px}
+.finput:focus{border-color:var(--blue)}
+.ftarea{width:100%;background:var(--b2);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:10px;padding:8px;outline:none;resize:vertical;min-height:60px;margin-top:3px;line-height:1.6}
+.ftarea:focus{border-color:var(--blue)}
+
+/* viz toggles */
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.vitm{display:flex;align-items:center;gap:5px;padding:5px 7px;cursor:pointer;border:1px solid transparent;background:var(--b2);font-size:10px;color:var(--i3);transition:all .12s;user-select:none}
+.vitm:hover{color:var(--i1);border-color:var(--rm)}
+.vitm.on{color:var(--i1);border-color:var(--rm)}
+.vbox{width:11px;height:11px;border:1px solid var(--i4);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:transparent;transition:all .12s}
+.vitm.on .vbox{border-color:var(--blue);background:rgba(77,159,255,.15);color:var(--blue)}
+
+/* presets */
+.pitm{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-bottom:1px solid var(--rs);background:transparent;cursor:pointer;width:100%;text-align:left;transition:background .1s;color:inherit}
+.pitm:last-child{border-bottom:none}
+.pitm:hover{background:var(--b3)}
+.pico{width:26px;height:26px;background:var(--b3);border:1px solid var(--rm);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.pinf{flex:1}
+.pnm2{font-size:11px;font-weight:500;color:var(--i1);margin-bottom:1px}
+.pdsc{font-size:9px;color:var(--i3)}
+.pbdg{font-family:var(--fm);font-size:8px;letter-spacing:.1em;padding:1px 5px;border:1px solid var(--rm);color:var(--i3);text-transform:uppercase}
+
+/* experiment panel */
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px}
+.exp-field{display:flex;flex-direction:column}
+.exp-label{font-size:9px;color:var(--i3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.exp-input{background:var(--b2);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:10px;padding:5px 7px;outline:none;width:100%}
+.exp-input:focus{border-color:var(--blue)}
+.sweep-row{display:grid;grid-template-columns:90px 1fr 1fr 1fr 24px;gap:3px;align-items:center;margin-bottom:3px;font-size:9px}
+.sweep-lbl{color:var(--i3);font-family:var(--fm);letter-spacing:.06em}
+.sweep-inp{background:var(--b2);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:9px;padding:3px 5px;outline:none;width:100%;text-align:center}
+.sweep-inp:focus{border-color:var(--blue)}
+.sweep-rm{background:none;border:none;color:var(--i4);cursor:pointer;font-size:12px;padding:0;line-height:1}
+.sweep-rm:hover{color:var(--red)}
+.res-item{padding:6px 8px;border-bottom:1px solid var(--rs);font-size:9px;font-family:var(--fm)}
+.res-item:last-child{border-bottom:none}
+.res-pass{color:var(--green)}
+.res-val{color:var(--ice);float:right}
+
+/* custom algo editor */
+.algo-list{display:flex;flex-direction:column;gap:2px;margin-bottom:8px}
+.algo-itm{display:flex;align-items:center;gap:6px;padding:6px 9px;background:var(--b2);border:1px solid var(--rm);cursor:pointer;transition:border-color .12s}
+.algo-itm:hover{border-color:var(--blue)}
+.algo-itm.on{border-color:var(--blue);background:var(--b3)}
+.algo-nm{font-size:10px;color:var(--i1);flex:1;font-weight:500}
+.algo-src{font-size:9px;color:var(--i3)}
+
+/* ─── CANVAS ─── */
+#cv{grid-area:cv;position:relative;background:var(--b0);overflow:hidden}
+#simCanvas{width:100%;height:100%;display:block;cursor:crosshair}
+.hud-tl{position:absolute;top:14px;left:14px;pointer-events:none}
+.hud-ro{font-family:var(--fm);font-size:10px;color:var(--i3);line-height:1.85;letter-spacing:.04em}
+.hud-ro span{color:var(--i2)}
+.hud-br{position:absolute;bottom:12px;right:14px;pointer-events:none;text-align:right}
+.hud-mode{font-family:var(--fc);font-size:10px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(200,240,255,.14)}
+.hud-hints{font-family:var(--fm);font-size:9px;color:var(--i4);line-height:1.8;margin-top:3px}
+.xh{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;opacity:.03}
+/* Overlay tabs on canvas */
+.cvtabs{position:absolute;top:0;right:0;display:flex;background:var(--b1);border-left:1px solid var(--rm);border-bottom:1px solid var(--rm)}
+.cvtab{font-family:var(--fm);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border:none;background:transparent;color:var(--i3);cursor:pointer;border-bottom:2px solid transparent}
+.cvtab.on{color:var(--i0);border-bottom-color:var(--teal)}
+/* Overlay canvases */
+.overlay-cv{position:absolute;inset:0;pointer-events:none;display:none}
+.overlay-cv.on{display:block}
+/* Wind field canvas */
+#windCv{position:absolute;inset:0;pointer-events:none;opacity:.5}
+/* Experiment progress bar */
+.exp-progress{position:absolute;top:0;left:0;right:0;height:2px;background:var(--b3);display:none}
+.exp-progress-fill{height:100%;background:var(--amber);transition:width .3s}
+
+/* ─── RIGHT PANEL ─── */
+#rp{grid-area:rp;background:var(--b1);border-left:1px solid var(--rm);display:flex;flex-direction:column;overflow-y:auto}
+#rp::-webkit-scrollbar{width:3px}
+#rp::-webkit-scrollbar-thumb{background:var(--rm)}
+.mcard{padding:10px 14px;border-bottom:1px solid var(--rs)}
+.mlbl{font-family:var(--fm);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--i3);margin-bottom:3px}
+.mrow{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
+.mnum{font-family:var(--fm);font-size:18px;font-weight:300;color:var(--i0);letter-spacing:-.02em;line-height:1}
+.munit{font-size:9px;color:var(--i3)}
+.mbg{width:100%;height:2px;background:var(--b4);overflow:hidden}
+.mfg{height:100%;background:var(--blue);transition:width .4s}
+.spkw{padding:8px 14px;border-bottom:1px solid var(--rs)}
+.splbl{font-family:var(--fm);font-size:9px;letter-spacing:.12em;color:var(--i3);text-transform:uppercase;margin-bottom:4px}
+.spc{width:100%;height:32px;display:block}
+.denw{padding:8px 14px;border-bottom:1px solid var(--rs)}
+.denc{width:100%;display:block;background:var(--b0);border:1px solid var(--rm)}
+.insp{padding:10px 14px;flex:1}
+.irow{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--rs);font-family:var(--fm);font-size:10px}
+.irow:last-child{border-bottom:none}
+.ival{color:var(--i1)}
+
+/* log panel */
+.log-area{flex:1;overflow-y:auto;padding:6px;font-family:var(--fm);font-size:9px;color:var(--i3);line-height:1.7;background:var(--b0)}
+.log-area::-webkit-scrollbar{width:3px}
+.log-area::-webkit-scrollbar-thumb{background:var(--rm)}
+.log-line{padding:1px 4px;border-bottom:1px solid rgba(255,255,255,.02)}
+.log-line.ok{color:var(--green)}
+.log-line.warn{color:var(--amber)}
+.log-line.err{color:var(--red)}
+.log-line.info{color:var(--ice)}
+
+/* ─── FOOTER ─── */
+#ft{grid-area:ft;background:var(--b1);border-top:1px solid var(--rm);display:flex;align-items:center;padding:0 14px;font-family:var(--fm);font-size:9px;color:var(--i3);letter-spacing:.07em}
+.fi{padding:0 12px;border-right:1px solid var(--rs);height:100%;display:flex;align-items:center;gap:4px}
+.fi:first-child{padding-left:0}
+.fi-live{color:var(--green)}
+.fi-sp{flex:1}
+
+/* ─── MODALS ─── */
+.veil{position:fixed;inset:0;background:rgba(8,9,13,.88);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center}
+.veil.open{display:flex}
+.mbox{background:var(--b1);border:1px solid var(--rm);width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.mbox.wide{width:680px}
+.mhead{padding:14px 18px;border-bottom:1px solid var(--rm);display:flex;align-items:center;justify-content:space-between}
+.mtitle{font-family:var(--fc);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--i0)}
+.mclose{background:none;border:none;color:var(--i3);cursor:pointer;font-size:15px}
+.mclose:hover{color:var(--i0)}
+.mbody{padding:18px}
+.mbody textarea{width:100%;height:180px;background:var(--b0);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:10px;padding:10px;resize:vertical;outline:none;line-height:1.7}
+.mbody textarea:focus{border-color:var(--blue)}
+.mfoot{padding:10px 18px;border-top:1px solid var(--rs);display:flex;gap:6px}
+.mrow2{display:flex;gap:8px;margin-bottom:10px}
+.mfield{display:flex;flex-direction:column;gap:3px;flex:1}
+.mflbl{font-size:9px;color:var(--i3);letter-spacing:.1em;text-transform:uppercase}
+.mfinput{background:var(--b2);border:1px solid var(--rm);color:var(--i1);font-family:var(--fm);font-size:10px;padding:6px 9px;outline:none;width:100%}
+.mfinput:focus{border-color:var(--blue)}
+.result-table{width:100%;border-collapse:collapse;font-family:var(--fm);font-size:9px;margin-top:8px}
+.result-table th{padding:5px 8px;border-bottom:1px solid var(--rm);color:var(--i3);text-align:left;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.result-table td{padding:4px 8px;border-bottom:1px solid var(--rs);color:var(--i2)}
+.result-table tr:hover td{background:var(--b3);color:var(--i1)}
+
+/* ─── TOAST ─── */
+.toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--b2);border:1px solid var(--rm);border-left:3px solid var(--blue);padding:7px 16px;font-family:var(--fm);font-size:10px;letter-spacing:.07em;color:var(--i1);z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ─── TASK SCENARIO PANEL ─── */
+.task-card{padding:8px 10px;border:1px solid var(--rm);background:var(--b2);margin-bottom:3px;cursor:pointer;transition:border-color .12s}
+.task-card:hover{border-color:var(--blue)}
+.task-card.on{border-color:var(--teal);background:var(--b3)}
+.task-title{font-size:11px;font-weight:500;color:var(--i1);margin-bottom:2px}
+.task-desc{font-size:9px;color:var(--i3)}
+.task-status{float:right;font-family:var(--fm);font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal)}
+
+/* algo highlight */
+pre{font-family:var(--fm);font-size:9px;line-height:1.7;padding:10px;background:var(--b0);border:1px solid var(--rs);color:var(--i2);white-space:pre-wrap;word-break:break-all;margin-top:6px;max-height:120px;overflow-y:auto}
+pre::-webkit-scrollbar{width:3px}
+pre::-webkit-scrollbar-thumb{background:var(--rm)}
+</style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══════════════════════════════════════════ -->
+<header id="tb">
+  <span class="tlogo">SIRS</span>
+  <span class="tsub">Swarm Intelligence Research Sandbox v3.0</span>
+  <div class="tdiv"></div>
+  <div class="tinfo">Session <strong id="sessId">—</strong> &nbsp;|&nbsp; Seed <strong id="seedDisp">—</strong> &nbsp;|&nbsp; Agents <strong id="hAgents">—</strong> &nbsp;|&nbsp; <strong id="hFps">—</strong> fps</div>
+  <div class="tsp"></div>
+  <div class="tctrls">
+    <div class="sring"><div class="rdot" id="rdot"></div><span class="rlbl" id="rlbl">Live</span></div>
+    <div class="tdiv" style="margin:0 8px"></div>
+    <button class="pill" id="btnStep">Step</button>
+    <button class="pill on" id="btnPause">Pause</button>
+    <button class="pill" id="btnReset">Reset</button>
+    <button class="pill" id="btnNewSeed">New Seed</button>
+    <div class="tdiv" style="margin:0 8px"></div>
+    <button class="pill" id="btnExportCSV">Export CSV</button>
+    <button class="pill" id="btnExportJSON">Export JSON</button>
+    <button class="pill" id="btnSave">Save Config</button>
+    <button class="pill" id="btnLoad">Load Config</button>
+  </div>
+</header>
+
+<!-- ══ PANEL TABS ══════════════════════════════════════ -->
+<div id="tabs">
+  <button class="tab on" data-lp="sim">Simulation</button>
+  <button class="tab" data-lp="algo">Algorithm Lab</button>
+  <button class="tab" data-lp="exp">Experiment</button>
+  <button class="tab" data-lp="env">Environment</button>
+  <button class="tab" data-lp="tasks">Tasks</button>
+  <button class="tab" data-lp="presets">Presets</button>
+</div>
+
+<!-- ══ LEFT PANEL ═════════════════════════════════════ -->
+<aside id="lp">
+
+  <!-- ── SIM PANE ── -->
+  <div class="lpane on" id="pane-sim">
+    <div class="psec">
+      <div class="sh">Algorithm</div>
+      <div class="mode-list" id="algoList">
+        <button class="mbtn on" data-beh="flocking"><div class="mbar"></div><span class="mlbl">Boids Flocking</span><span class="mtag">REYNOLDS</span></button>
+        <button class="mbtn" data-beh="vicsek"><div class="mbar"></div><span class="mlbl">Vicsek Model</span><span class="mtag">VICSEK</span></button>
+        <button class="mbtn" data-beh="formation"><div class="mbar"></div><span class="mlbl">Formation Control</span><span class="mtag">GEO</span></button>
+        <button class="mbtn" data-beh="exploration"><div class="mbar"></div><span class="mlbl">Distributed Exploration</span><span class="mtag">FRONTIER</span></button>
+        <button class="mbtn" data-beh="consensus"><div class="mbar"></div><span class="mlbl">Consensus Dynamics</span><span class="mtag">ORDER-Φ</span></button>
+        <button class="mbtn" data-beh="leader"><div class="mbar"></div><span class="mlbl">Leader–Follower</span><span class="mtag">HIER</span></button>
+        <button class="mbtn" data-beh="potential"><div class="mbar"></div><span class="mlbl">Potential Fields</span><span class="mtag">APF</span></button>
+        <button class="mbtn" data-beh="pso"><div class="mbar"></div><span class="mlbl">PSO Dynamics</span><span class="mtag">PSO</span></button>
+        <button class="mbtn" data-beh="aco"><div class="mbar"></div><span class="mlbl">ACO Exploration</span><span class="mtag">ACO</span></button>
+        <button class="mbtn" data-beh="foraging"><div class="mbar"></div><span class="mlbl">Resource Foraging</span><span class="mtag">FORAGE</span></button>
+        <button class="mbtn" data-beh="splitting"><div class="mbar"></div><span class="mlbl">Split &amp; Merge</span><span class="mtag">FISSION</span></button>
+      </div>
+    </div>
+    <div class="psec">
+      <div class="sh">Formation Target</div>
+      <select class="fsel" id="formationType">
+        <option value="circle">Circle</option><option value="grid">Lattice Grid</option>
+        <option value="line">Line Abreast</option><option value="v">Delta / V-Shape</option>
+        <option value="triangle">Triangle</option><option value="hex">Hexagonal</option>
+      </select>
+    </div>
+    <div class="psec">
+      <div class="sh">Swarm Parameters</div>
+      <div class="prow"><span class="pnm">Agent count</span><input class="psl" type="range" id="pAgents" min="10" max="800" value="120" step="5"><span class="pvl" id="vAgents">120</span></div>
+      <div class="prow"><span class="pnm">Sense radius</span><input class="psl" type="range" id="pSense" min="20" max="200" value="60" step="5"><span class="pvl" id="vSense">60</span></div>
+      <div class="prow"><span class="pnm">Comm radius</span><input class="psl" type="range" id="pComm" min="20" max="250" value="90" step="5"><span class="pvl" id="vComm">90</span></div>
+      <div class="prow"><span class="pnm">Max speed</span><input class="psl" type="range" id="pSpeed" min="0.5" max="5" value="2" step="0.1"><span class="pvl" id="vSpeed">2.0</span></div>
+      <div class="prow"><span class="pnm">Separation w</span><input class="psl" type="range" id="pSep" min="0" max="5" value="1.5" step="0.05"><span class="pvl" id="vSep">1.50</span></div>
+      <div class="prow"><span class="pnm">Alignment w</span><input class="psl" type="range" id="pAlign" min="0" max="5" value="1.2" step="0.05"><span class="pvl" id="vAlign">1.20</span></div>
+      <div class="prow"><span class="pnm">Cohesion w</span><input class="psl" type="range" id="pCohes" min="0" max="5" value="1.0" step="0.05"><span class="pvl" id="vCohes">1.00</span></div>
+      <div class="prow"><span class="pnm">Noise σ</span><input class="psl" type="range" id="pNoise" min="0" max="1" value="0.05" step="0.01"><span class="pvl" id="vNoise">0.05</span></div>
+      <div class="prow"><span class="pnm">Packet loss</span><input class="psl" type="range" id="pCommFail" min="0" max="1" value="0" step="0.01"><span class="pvl" id="vCommFail">0%</span></div>
+      <div class="prow"><span class="pnm">Comm delay (f)</span><input class="psl" type="range" id="pCommDelay" min="0" max="20" value="0" step="1"><span class="pvl" id="vCommDelay">0</span></div>
+      <div class="prow"><span class="pnm">Sensor noise</span><input class="psl" type="range" id="pSensorNoise" min="0" max="5" value="0" step="0.1"><span class="pvl" id="vSensorNoise">0.0</span></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Visualization</div>
+      <div class="vgrid">
+        <div class="vitm on" data-viz="trails" onclick="togViz(this)"><div class="vbox">✓</div>Trails</div>
+        <div class="vitm" data-viz="links" onclick="togViz(this)"><div class="vbox"></div>Comm Links</div>
+        <div class="vitm" data-viz="sense" onclick="togViz(this)"><div class="vbox"></div>Sense Ring</div>
+        <div class="vitm on" data-viz="velocity" onclick="togViz(this)"><div class="vbox">✓</div>Vel Vectors</div>
+        <div class="vitm on" data-viz="clusters" onclick="togViz(this)"><div class="vbox">✓</div>Clusters</div>
+        <div class="vitm" data-viz="predator" onclick="togViz(this)"><div class="vbox"></div>Predator</div>
+        <div class="vitm on" data-viz="grid" onclick="togViz(this)"><div class="vbox">✓</div>Grid</div>
+        <div class="vitm on" data-viz="obstacles" onclick="togViz(this)"><div class="vbox">✓</div>Obstacles</div>
+        <div class="vitm" data-viz="wind" onclick="togViz(this)"><div class="vbox"></div>Wind Field</div>
+        <div class="vitm" data-viz="heatmap" onclick="togViz(this)"><div class="vbox"></div>Heat Overlay</div>
+        <div class="vitm" data-viz="formtargets" onclick="togViz(this)"><div class="vbox"></div>Form Targets</div>
+        <div class="vitm" data-viz="commgraph" onclick="togViz(this)"><div class="vbox"></div>Comm Graph</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALGO LAB PANE ── -->
+  <div class="lpane" id="pane-algo">
+    <div class="psec">
+      <div class="sh">Registered Algorithms</div>
+      <div class="algo-list" id="registeredAlgos"></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Plugin: Register Custom Behavior</div>
+      <div class="exp-field" style="margin-bottom:6px">
+        <div class="exp-label">Algorithm Name</div>
+        <input class="exp-input" id="algoName" placeholder="my_algorithm" style="margin-top:3px">
+      </div>
+      <div class="exp-field">
+        <div class="exp-label">Behavior Function Body</div>
+        <textarea class="ftarea" id="algoCode" style="min-height:130px;margin-top:3px" placeholder="// agent: current agent
+// nb: array of neighbor agents
+// env: {W,H,frame,params,obstacles,wind}
+// return {fx, fy} force vector
+
+let fx=0, fy=0;
+// your algorithm here
+return {fx, fy};">// agent: current agent
+// nb: array of neighbor agents
+// env: {W,H,frame,params,obstacles,wind}
+// return {fx, fy} force vector
+
+let fx=0, fy=0;
+for(const b of nb){
+  const dx=agent.x-b.x, dy=agent.y-b.y;
+  const d=Math.hypot(dx,dy)||.001;
+  if(d &lt; env.params.senseRadius*0.5){
+    fx += dx/(d*d)*2; fy += dy/(d*d)*2;
+  }
+}
+return {fx, fy};</textarea>
+      </div>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <button class="pill on" onclick="registerCustomAlgo()" style="flex:1">Register</button>
+        <button class="pill" onclick="testCustomAlgo()" style="flex:1">Validate</button>
+      </div>
+      <div id="algoError" style="font-size:9px;color:var(--red);margin-top:4px;font-family:var(--fm)"></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Compare Algorithms</div>
+      <div class="exp-field" style="margin-bottom:6px">
+        <div class="exp-label">Algorithm A</div>
+        <select class="fsel" id="cmpA" style="margin-top:3px"></select>
+      </div>
+      <div class="exp-field" style="margin-bottom:8px">
+        <div class="exp-label">Algorithm B</div>
+        <select class="fsel" id="cmpB" style="margin-top:3px"></select>
+      </div>
+      <button class="pill" onclick="runAlgoComparison()" style="width:100%">Run Comparison (100 frames each)</button>
+      <div id="cmpResult" style="margin-top:8px;font-family:var(--fm);font-size:9px;color:var(--i2)"></div>
+    </div>
+  </div>
+
+  <!-- ── EXPERIMENT PANE ── -->
+  <div class="lpane" id="pane-exp">
+    <div class="psec">
+      <div class="sh">Experiment Configuration</div>
+      <div class="mrow2">
+        <div class="mfield"><div class="mflbl">Experiment Name</div><input class="mfinput" id="expName" value="exp_001"></div>
+        <div class="mfield"><div class="mflbl">Runs / config</div><input class="mfinput" id="expRuns" type="number" value="5" min="1" max="50"></div>
+      </div>
+      <div class="mrow2">
+        <div class="mfield"><div class="mflbl">Frames / run</div><input class="mfinput" id="expFrames" type="number" value="300" min="50" max="5000"></div>
+        <div class="mfield"><div class="mflbl">Monte Carlo</div>
+          <select class="fsel" id="expMC" style="margin-top:3px"><option value="0">Deterministic</option><option value="1" selected>Random seeds</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="psec">
+      <div class="sh">Parameter Sweep</div>
+      <div id="sweepRows"></div>
+      <select class="fsel" id="sweepParam" style="margin-top:6px">
+        <option value="">-- Add parameter sweep --</option>
+        <option value="senseRadius">Sense Radius</option>
+        <option value="commRadius">Comm Radius</option>
+        <option value="alignment">Alignment w</option>
+        <option value="cohesion">Cohesion w</option>
+        <option value="separation">Separation w</option>
+        <option value="noise">Noise σ</option>
+        <option value="maxSpeed">Max Speed</option>
+        <option value="agentCount">Agent Count</option>
+        <option value="commFail">Packet Loss</option>
+      </select>
+      <button class="pill" onclick="addSweepRow()" style="width:100%;margin-top:4px">+ Add Sweep</button>
+    </div>
+    <div class="psec">
+      <div class="sh">Batch Runner</div>
+      <div style="font-family:var(--fm);font-size:9px;color:var(--i3);margin-bottom:8px">
+        Configurations: <span id="expCfgCount" style="color:var(--ice)">—</span> &nbsp;|&nbsp;
+        Total runs: <span id="expTotalRuns" style="color:var(--ice)">—</span>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="pill on" onclick="runBatchExperiment()" style="flex:1" id="btnBatch">Run Batch</button>
+        <button class="pill" onclick="stopBatch()" style="flex:1">Stop</button>
+      </div>
+      <div id="batchStatus" style="font-family:var(--fm);font-size:9px;color:var(--i2);margin-top:6px"></div>
+    </div>
+    <div class="psec" style="flex:1;overflow-y:auto">
+      <div class="sh">Results</div>
+      <div id="expResults" style="font-family:var(--fm);font-size:9px;color:var(--i3)">No results yet.</div>
+      <div style="display:flex;gap:4px;margin-top:8px">
+        <button class="pill" onclick="exportExpCSV()" style="flex:1">Export CSV</button>
+        <button class="pill" onclick="exportExpJSON()" style="flex:1">Export JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ENVIRONMENT PANE ── -->
+  <div class="lpane" id="pane-env">
+    <div class="psec">
+      <div class="sh">Obstacles</div>
+      <div class="prow"><span class="pnm">Count</span><input class="psl" type="range" id="pObstacles" min="0" max="30" value="0" step="1"><span class="pvl" id="vObstacles">0</span></div>
+      <div class="prow"><span class="pnm">Moving obstacles</span><input class="psl" type="range" id="pMovObs" min="0" max="10" value="0" step="1"><span class="pvl" id="vMovObs">0</span></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Wind Field</div>
+      <div class="prow"><span class="pnm">Wind strength</span><input class="psl" type="range" id="pWind" min="0" max="3" value="0" step="0.05"><span class="pvl" id="vWind">0.00</span></div>
+      <div class="prow"><span class="pnm">Wind angle (°)</span><input class="psl" type="range" id="pWindDir" min="0" max="360" value="90" step="5"><span class="pvl" id="vWindDir">90°</span></div>
+      <div class="prow"><span class="pnm">Turbulence</span><input class="psl" type="range" id="pTurb" min="0" max="1" value="0" step="0.01"><span class="pvl" id="vTurb">0.00</span></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Communication Model</div>
+      <div class="prow"><span class="pnm">Packet loss %</span><input class="psl" type="range" id="pCF2" min="0" max="1" value="0" step="0.01"><span class="pvl" id="vCF2">0%</span></div>
+      <div class="prow"><span class="pnm">Comm delay (f)</span><input class="psl" type="range" id="pCD2" min="0" max="20" value="0" step="1"><span class="pvl" id="vCD2">0</span></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Sensor Model</div>
+      <div class="prow"><span class="pnm">Position noise</span><input class="psl" type="range" id="pSN2" min="0" max="5" value="0" step="0.1"><span class="pvl" id="vSN2">0.0</span></div>
+      <div class="prow"><span class="pnm">GPS error σ</span><input class="psl" type="range" id="pGPS" min="0" max="10" value="0" step="0.5"><span class="pvl" id="vGPS">0.0</span></div>
+    </div>
+    <div class="psec">
+      <div class="sh">Scenario Editor</div>
+      <div style="font-size:9px;color:var(--i3);margin-bottom:8px;font-family:var(--fm)">Click canvas to place obstacle. Shift+Click spawns predator. Right-click removes nearest obstacle.</div>
+      <button class="pill" onclick="clearObstacles()" style="width:100%;margin-bottom:4px">Clear Obstacles</button>
+      <button class="pill" onclick="saveScenario()" style="width:100%;margin-bottom:4px">Save Scenario</button>
+      <button class="pill" onclick="loadScenarioPrompt()" style="width:100%">Load Scenario</button>
+    </div>
+    <div class="psec" style="flex:1">
+      <div class="sh">Spawn Region</div>
+      <div class="prow"><span class="pnm">Spawn mode</span>
+        <select class="fsel" id="spawnMode" style="margin:0;padding:3px 7px;font-size:9px">
+          <option value="random">Random</option>
+          <option value="cluster">Clustered</option>
+          <option value="center">Center</option>
+          <option value="edge">Edge</option>
+        </select>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TASKS PANE ── -->
+  <div class="lpane" id="pane-tasks">
+    <div class="psec">
+      <div class="sh">Task Scenarios</div>
+      <div class="task-card" data-task="search_rescue" onclick="loadTask(this)">
+        <div class="task-title">Search &amp; Rescue <span class="task-status">READY</span></div>
+        <div class="task-desc">Agents locate hidden targets in cluttered environment</div>
+      </div>
+      <div class="task-card" data-task="area_coverage" onclick="loadTask(this)">
+        <div class="task-title">Area Coverage <span class="task-status">READY</span></div>
+        <div class="task-desc">Maximize spatial coverage of arena</div>
+      </div>
+      <div class="task-card" data-task="resource_foraging" onclick="loadTask(this)">
+        <div class="task-title">Resource Foraging <span class="task-status">READY</span></div>
+        <div class="task-desc">Collect and return distributed resources to nest</div>
+      </div>
+      <div class="task-card" data-task="target_tracking" onclick="loadTask(this)">
+        <div class="task-title">Target Tracking <span class="task-status">READY</span></div>
+        <div class="task-desc">Swarm surrounds and tracks moving target</div>
+      </div>
+      <div class="task-card" data-task="task_allocation" onclick="loadTask(this)">
+        <div class="task-title">Task Allocation <span class="task-status">READY</span></div>
+        <div class="task-desc">Self-organized distributed task assignment</div>
+      </div>
+      <div class="task-card" data-task="flocking_obstacle" onclick="loadTask(this)">
+        <div class="task-title">Obstacle Navigation <span class="task-status">READY</span></div>
+        <div class="task-desc">Flocking through dense obstacle field</div>
+      </div>
+    </div>
+    <div class="psec" id="taskStatus" style="flex:1">
+      <div class="sh">Task Progress</div>
+      <div id="taskStatusContent" style="font-family:var(--fm);font-size:9px;color:var(--i3)">No task active. Select a scenario above.</div>
+    </div>
+  </div>
+
+  <!-- ── PRESETS PANE ── -->
+  <div class="lpane" id="pane-presets">
+    <div class="psec" style="flex:1">
+      <div class="sh">Experiment Presets</div>
+      <button class="pitm" onclick="loadPreset('murmuration')"><div class="pico">🐦</div><div class="pinf"><div class="pnm2">Starling Murmuration</div><div class="pdsc">Dense flock · high alignment</div></div><div class="pbdg">FLOCK</div></button>
+      <button class="pitm" onclick="loadPreset('army_ants')"><div class="pico">🐜</div><div class="pinf"><div class="pnm2">Army Ant Foraging</div><div class="pdsc">Stigmergic resource collection</div></div><div class="pbdg">ACO</div></button>
+      <button class="pitm" onclick="loadPreset('fish_school')"><div class="pico">🐟</div><div class="pinf"><div class="pnm2">Fish Schooling</div><div class="pdsc">High-density separation</div></div><div class="pbdg">DENSE</div></button>
+      <button class="pitm" onclick="loadPreset('drone_swarm')"><div class="pico">⬛</div><div class="pinf"><div class="pnm2">Tactical Drone Swarm</div><div class="pdsc">Grid formation deployment</div></div><div class="pbdg">FORM</div></button>
+      <button class="pitm" onclick="loadPreset('scatter_reform')"><div class="pico">⊙</div><div class="pinf"><div class="pnm2">Scatter &amp; Reform</div><div class="pdsc">Fission–fusion dynamics</div></div><div class="pbdg">SPLIT</div></button>
+      <button class="pitm" onclick="loadPreset('predator_flee')"><div class="pico">◈</div><div class="pinf"><div class="pnm2">Predator Evasion</div><div class="pdsc">Disturbance agent response</div></div><div class="pbdg">EVADE</div></button>
+      <button class="pitm" onclick="loadPreset('search_rescue')"><div class="pico">⊕</div><div class="pinf"><div class="pnm2">Search &amp; Rescue</div><div class="pdsc">Frontier exploration · 10% loss</div></div><div class="pbdg">SAR</div></button>
+      <button class="pitm" onclick="loadPreset('consensus_demo')"><div class="pico">↻</div><div class="pinf"><div class="pnm2">Consensus Demo</div><div class="pdsc">Order-parameter convergence</div></div><div class="pbdg">SYNC</div></button>
+      <button class="pitm" onclick="loadPreset('vicsek_phase')"><div class="pico">∿</div><div class="pinf"><div class="pnm2">Vicsek Phase Transition</div><div class="pdsc">Noise-driven order parameter</div></div><div class="pbdg">PHASE</div></button>
+      <button class="pitm" onclick="loadPreset('pso_demo')"><div class="pico">◎</div><div class="pinf"><div class="pnm2">PSO Optimization</div><div class="pdsc">Particle swarm convergence</div></div><div class="pbdg">PSO</div></button>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ══ CANVAS ═════════════════════════════════════════ -->
+<main id="cv">
+  <canvas id="simCanvas"></canvas>
+  <canvas id="windCv" style="display:none"></canvas>
+  <canvas class="overlay-cv" id="heatCv"></canvas>
+  <div class="exp-progress" id="expProgress"><div class="exp-progress-fill" id="expProgressFill" style="width:0%"></div></div>
+  <div class="hud-tl">
+    <div class="hud-ro">
+      <div>FPS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="hudFps">—</span></div>
+      <div>FRAME&nbsp;&nbsp;&nbsp;<span id="hudFrame">0</span></div>
+      <div>AGENTS&nbsp;&nbsp;<span id="hudAgents">—</span></div>
+      <div>TIME&nbsp;&nbsp;&nbsp;&nbsp;<span id="hudTime">0.0</span>s</div>
+      <div>SEED&nbsp;&nbsp;&nbsp;&nbsp;<span id="hudSeed">—</span></div>
+    </div>
+  </div>
+  <div class="hud-br">
+    <div class="hud-mode" id="hudMode">BOIDS FLOCKING</div>
+    <div class="hud-hints">← Click · obstacle &nbsp; Shift+Click · predator<br>← Right-Click · remove obstacle &nbsp; Click agent · inspect</div>
+  </div>
+  <svg class="xh" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="white" stroke-width=".5"/><line x1="50" y1="0" x2="50" y2="100" stroke="white" stroke-width=".5"/><line x1="0" y1="50" x2="100" y2="50" stroke="white" stroke-width=".5"/><circle cx="50" cy="50" r="7" fill="none" stroke="white" stroke-width=".5"/></svg>
+  <div class="cvtabs">
+    <button class="cvtab on" data-cvt="sim">Sim</button>
+    <button class="cvtab" data-cvt="density">Density</button>
+    <button class="cvtab" data-cvt="trajectories">Trajectories</button>
+    <button class="cvtab" data-cvt="coverage">Coverage</button>
+  </div>
+</main>
+
+<!-- ══ RIGHT PANEL ════════════════════════════════════ -->
+<aside id="rp">
+  <div class="psec"><div class="sh">Live Metrics</div></div>
+  <div class="mcard"><div class="mlbl">Avg Inter-Agent Distance</div><div class="mrow"><span class="mnum" id="mDist">—</span><span class="munit">px</span></div><div class="mbg"><div class="mfg" id="mDistBar" style="width:50%;background:var(--teal)"></div></div></div>
+  <div class="mcard"><div class="mlbl">Detected Clusters</div><div class="mrow"><span class="mnum" id="mClusters">—</span><span class="munit">groups</span></div><div class="mbg"><div class="mfg" id="mClBar" style="width:20%;background:var(--purple)"></div></div></div>
+  <div class="mcard"><div class="mlbl">Spatial Coverage</div><div class="mrow"><span class="mnum" id="mCov">—</span><span class="munit">%</span></div><div class="mbg"><div class="mfg" id="mCovBar" style="width:0%;background:var(--green)"></div></div></div>
+  <div class="mcard"><div class="mlbl">Mean Velocity</div><div class="mrow"><span class="mnum" id="mSpd">—</span><span class="munit">u/f</span></div><div class="mbg"><div class="mfg" id="mSpdBar" style="width:40%;background:var(--amber)"></div></div></div>
+  <div class="mcard"><div class="mlbl">Consensus Order Φ</div><div class="mrow"><span class="mnum" id="mPhi">—</span><span class="munit">0–1</span></div><div class="mbg"><div class="mfg" id="mPhiBar" style="width:0%"></div></div></div>
+  <div class="mcard"><div class="mlbl">Swarm Entropy H</div><div class="mrow"><span class="mnum" id="mEntropy">—</span><span class="munit">bits</span></div><div class="mbg"><div class="mfg" id="mEntBar" style="width:0%;background:var(--pink)"></div></div></div>
+  <div class="mcard"><div class="mlbl">Formation Error</div><div class="mrow"><span class="mnum" id="mFormErr">—</span><span class="munit">px</span></div><div class="mbg"><div class="mfg" id="mFormBar" style="width:0%;background:var(--red)"></div></div></div>
+  <div class="spkw"><div class="splbl">Coverage / time</div><canvas class="spc" id="spCov" height="32"></canvas></div>
+  <div class="spkw"><div class="splbl">Consensus Φ / time</div><canvas class="spc" id="spPhi" height="32"></canvas></div>
+  <div class="spkw"><div class="splbl">Avg distance / time</div><canvas class="spc" id="spDist" height="32"></canvas></div>
+  <div class="denw"><div class="splbl">Agent Density Map</div><canvas class="denc" id="densMap" width="240" height="96"></canvas></div>
+  <div class="insp"><div class="sh">Agent Inspector</div><div id="inspector" style="font-family:var(--fm);font-size:10px;color:var(--i3)">Click any agent to inspect</div></div>
+  <div class="psec" style="flex:1;min-height:80px">
+    <div class="sh">Simulation Log</div>
+    <div class="log-area" id="logArea"></div>
+  </div>
+</aside>
+
+<!-- ══ FOOTER ═════════════════════════════════════════ -->
+<footer id="ft">
+  <div class="fi"><span class="fi-live">●</span><span id="ftStat">SIMULATION RUNNING</span></div>
+  <div class="fi">Algo: <span id="ftAlgo" style="color:var(--i1)">Boids Flocking</span></div>
+  <div class="fi">Task: <span id="ftTask" style="color:var(--i1)">—</span></div>
+  <div class="fi">Env: Obs <span id="ftObs" style="color:var(--i1)">0</span> Wind <span id="ftWind" style="color:var(--i1)">0.0</span></div>
+  <div class="fi">Loss: <span id="ftLoss" style="color:var(--i1)">0%</span></div>
+  <div class="fi-sp"></div>
+  <div style="font-family:var(--fm);font-size:9px;color:var(--i4)">Swarm Intelligence Research Sandbox · v3.0</div>
+</footer>
+
+<!-- ══ MODALS ══════════════════════════════════════════ -->
+<div class="veil" id="cfgModal">
+  <div class="mbox">
+    <div class="mhead"><span class="mtitle">Configuration I/O</span><button class="mclose" onclick="document.getElementById('cfgModal').classList.remove('open')">✕</button></div>
+    <div class="mbody"><textarea id="cfgText" placeholder="Paste JSON config to import..."></textarea></div>
+    <div class="mfoot"><button class="pill on" id="btnImport">Import</button><button class="pill" onclick="document.getElementById('cfgModal').classList.remove('open')">Close</button></div>
+  </div>
+</div>
+
+<div class="veil" id="resultsModal">
+  <div class="mbox wide">
+    <div class="mhead"><span class="mtitle">Experiment Results</span><button class="mclose" onclick="document.getElementById('resultsModal').classList.remove('open')">✕</button></div>
+    <div class="mbody">
+      <div id="resultsModalContent"></div>
+    </div>
+    <div class="mfoot">
+      <button class="pill on" onclick="exportExpCSV()">Export CSV</button>
+      <button class="pill" onclick="exportExpJSON()">Export JSON</button>
+      <button class="pill" onclick="document.getElementById('resultsModal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ ENGINE ══════════════════════════════════════════ -->
+<script>
+// ════════════════════════════════════════════════════════
+//  SWARM INTELLIGENCE RESEARCH SANDBOX v3.0
+//  Full research-grade engine with:
+//  - Algorithm plugin system
+//  - Parameter sweep / batch experiments
+//  - Wind fields + sensor noise + comm delay
+//  - Task scenarios
+//  - CSV/JSON export
+//  - Reproducible seeds (SeededRandom)
+// ════════════════════════════════════════════════════════
+
+// ─── SEEDED PRNG (Mulberry32) ───────────────────────────
+function mkRng(seed){
+  let s=seed|0;
+  return function(){s+=0x6D2B79F5;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};
+}
+let currentSeed=Math.floor(Math.random()*99999)+1;
+let rng=mkRng(currentSeed);
+
+// ─── SIMULATION STATE ───────────────────────────────────
+const canvas=document.getElementById('simCanvas'),ctx=canvas.getContext('2d');
+const heatCanvas=document.getElementById('heatCv'), heatCtx=heatCanvas.getContext('2d');
+const windCanvas=document.getElementById('windCv'), windCtx=windCanvas.getContext('2d');
+
+const sim={
+  running:true,frame:0,t:0,dt:1,behavior:'flocking',formation:'circle',cvTab:'sim',
+  viz:{trails:true,links:false,sense:false,velocity:true,clusters:true,predator:false,
+       grid:true,obstacles:true,wind:false,heatmap:false,formtargets:false,commgraph:false},
+  params:{agentCount:120,senseRadius:60,commRadius:90,maxSpeed:2,
+          separation:1.5,alignment:1.2,cohesion:1.0,noise:.05,
+          commFail:0,commDelay:0,sensorNoise:0,
+          obstacleCount:0,movingObstacles:0,
+          windStrength:0,windDir:90,turbulence:0,gpsError:0},
+  W:0,H:0,task:null,spawnMode:'random'
+};
+
+// Metric history
+const hist={cov:[],dist:[],phi:[],entropy:[],max:200};
+
+// Experiment state
+let expResults=[],batchRunning=false,batchStop=false;
+
+// Coverage map (persistent grid)
+let covGrid=null;const COV_W=40,COV_H=28;
+
+// Heatmap accumulator
+let heatAccum=null;
+
+// Task state
+const taskState={type:null,targets:[],collected:0,totalTargets:0,startFrame:0,taskScore:0};
+
+let agents=[],obstacles=[],movingObs=[],resources=[],predator=null,selAgent=null;
+let trailCv,trailCtx,trajCv,trajCtx;
+let spatHash={};const CELL=80;
+const CCOLS=['#4d9fff','#00c4b4','#9b7fff','#f5a623','#2dd68c','#e8445a','#64b5f6','#ffca80'];
+
+// Communication delay buffer: [agentId] -> queue of {frame, data}
+let commBuffer={};
+
+// PSO global best
+let psoBest={x:0,y:0,score:-Infinity};
+
+// ACO pheromone grid
+let pheromone=null;const PHE_W=50,PHE_H=35;
+
+// ─── ALGORITHM REGISTRY ─────────────────────────────────
+const behaviorRegistry={};
+
+function registerBehavior(name, fn){
+  behaviorRegistry[name]=fn;
+  updateAlgoUI();
+  log(`Behavior registered: ${name}`,'ok');
+}
+
+// Built-in algorithms
+registerBehavior('flocking', function(agent,nb,env){
+  let sx=0,sy=0,ax=0,ay=0,cx=0,cy=0,n=0;
+  for(const b of nb){
+    if(rng()<env.params.commFail) continue;
+    const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;
+    if(d<env.params.senseRadius*.4){sx+=dx/(d*d);sy+=dy/(d*d);}
+    ax+=b.vx;ay+=b.vy;cx+=b.x;cy+=b.y;n++;
+  }
+  if(!n) return{fx:0,fy:0};
+  return{
+    fx:sx*env.params.separation+ax/n*env.params.alignment+(cx/n-agent.x)*env.params.cohesion*.01,
+    fy:sy*env.params.separation+ay/n*env.params.alignment+(cy/n-agent.y)*env.params.cohesion*.01
+  };
+});
+
+// Vicsek model: pure alignment with metric interaction
+registerBehavior('vicsek', function(agent,nb,env){
+  let ax=0,ay=0,n=0;
+  for(const b of nb){ax+=b.vx;ay+=b.vy;n++;}
+  ax+=agent.vx;ay+=agent.vy;n++;
+  const mag=Math.hypot(ax,ay)||.001;
+  return{fx:(ax/mag*env.params.maxSpeed-agent.vx)*env.params.alignment*.5,
+         fy:(ay/mag*env.params.maxSpeed-agent.vy)*env.params.alignment*.5};
+});
+
+registerBehavior('formation', function(agent,nb,env){
+  let fx=(agent.formX-agent.x)*.05*env.params.cohesion,fy=(agent.formY-agent.y)*.05*env.params.cohesion;
+  for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;if(d<20){fx+=dx/(d*d)*env.params.separation*.4;fy+=dy/(d*d)*env.params.separation*.4;}}
+  return{fx,fy};
+});
+
+registerBehavior('exploration', function(agent,nb,env){
+  let fx=0,fy=0;
+  for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001,rep=Math.max(0,env.params.senseRadius-d);fx+=dx/d*rep*.04*env.params.separation;fy+=dy/d*rep*.04*env.params.separation;}
+  if(rng()<.01){const a=rng()*Math.PI*2;agent.vx+=Math.cos(a)*1.5;agent.vy+=Math.sin(a)*1.5;}
+  // Pheromone-free gradient toward uncovered areas
+  if(covGrid){
+    const gx=Math.floor(agent.x/sim.W*COV_W),gy=Math.floor(agent.y/sim.H*COV_H);
+    let bestX=agent.x,bestY=agent.y,bestScore=covGrid[gy*COV_W+gx]||0;
+    for(let dx2=-2;dx2<=2;dx2++) for(let dy2=-2;dy2<=2;dy2++){
+      const nx=gx+dx2,ny=gy+dy2;
+      if(nx<0||nx>=COV_W||ny<0||ny>=COV_H) continue;
+      const s=covGrid[ny*COV_W+nx]||0;
+      if(s<bestScore){bestScore=s;bestX=sim.W*(nx+.5)/COV_W;bestY=sim.H*(ny+.5)/COV_H;}
+    }
+    fx+=(bestX-agent.x)*.003*env.params.cohesion;
+    fy+=(bestY-agent.y)*.003*env.params.cohesion;
+  }
+  return{fx,fy};
+});
+
+registerBehavior('consensus', function(agent,nb,env){
+  let vx2=0,vy2=0,cx=0,cy=0,n=0;
+  for(const b of nb){if(rng()<env.params.commFail)continue;vx2+=b.vx;vy2+=b.vy;cx+=b.x;cy+=b.y;n++;}
+  if(!n) return{fx:0,fy:0};
+  return{fx:(vx2/n-agent.vx)*env.params.alignment*.3+(cx/n-agent.x)*.002*env.params.cohesion,
+         fy:(vy2/n-agent.vy)*env.params.alignment*.3+(cy/n-agent.y)*.002*env.params.cohesion};
+});
+
+registerBehavior('leader', function(agent,nb,env){
+  if(agent.isLeader){
+    if(env.frame%200===0){const a=rng()*Math.PI*2;agent.targetX=sim.W/2+Math.cos(a)*Math.min(sim.W,sim.H)*.3;agent.targetY=sim.H/2+Math.sin(a)*Math.min(sim.W,sim.H)*.3;}
+    return{fx:(agent.targetX-agent.x)*.02,fy:(agent.targetY-agent.y)*.02};
+  }
+  const L=agents[0];let fx=(L.x-agent.x)*.003*env.params.cohesion,fy=(L.y-agent.y)*.003*env.params.cohesion;
+  for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;if(d<18){fx+=dx/(d*d)*env.params.separation*.2;fy+=dy/(d*d)*env.params.separation*.2;}}
+  return{fx,fy};
+});
+
+// Artificial Potential Field
+registerBehavior('potential', function(agent,nb,env){
+  const cx=sim.W/2,cy=sim.H/2;
+  let fx=(cx-agent.x)*.002*env.params.cohesion,fy=(cy-agent.y)*.002*env.params.cohesion;
+  for(const b of nb){
+    const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;
+    const rep=Math.max(0,40-d),attr=Math.max(0,d-80);
+    fx+=dx/d*(rep*env.params.separation*.05-attr*env.params.cohesion*.005);
+    fy+=dy/d*(rep*env.params.separation*.05-attr*env.params.cohesion*.005);
+  }
+  for(const o of obstacles){
+    const dx=agent.x-o.x,dy=agent.y-o.y,d=Math.hypot(dx,dy)||.001,cl=o.r+30;
+    if(d<cl){fx+=dx/d*(cl-d)/cl*4;fy+=dy/d*(cl-d)/cl*4;}
+  }
+  return{fx,fy};
+});
+
+// PSO-style: global best + personal best
+registerBehavior('pso', function(agent,nb,env){
+  // Update personal best
+  const score=-(Math.hypot(agent.x-sim.W/2,agent.y-sim.H/2));
+  if(score>agent.pBestScore){agent.pBestScore=score;agent.pBestX=agent.x;agent.pBestY=agent.y;}
+  // Update global best
+  if(score>psoBest.score){psoBest.score=score;psoBest.x=agent.x;psoBest.y=agent.y;}
+  const w=.5,c1=env.params.cohesion,c2=env.params.alignment;
+  const pfx=(agent.pBestX-agent.x)*c1*rng()*.1,pfy=(agent.pBestY-agent.y)*c1*rng()*.1;
+  const gfx=(psoBest.x-agent.x)*c2*rng()*.05,gfy=(psoBest.y-agent.y)*c2*rng()*.05;
+  return{fx:pfx+gfx,fy:pfy+gfy};
+});
+
+// ACO-inspired: pheromone gradient following
+registerBehavior('aco', function(agent,nb,env){
+  let fx=0,fy=0;
+  if(pheromone){
+    const gx=Math.floor(agent.x/sim.W*PHE_W),gy=Math.floor(agent.y/sim.H*PHE_H);
+    let bestGx=gx,bestGy=gy,bestPhe=-1;
+    for(let dx2=-3;dx2<=3;dx2++) for(let dy2=-3;dy2<=3;dy2++){
+      const nx=Math.max(0,Math.min(PHE_W-1,gx+dx2)),ny=Math.max(0,Math.min(PHE_H-1,gy+dy2));
+      const p=pheromone[ny*PHE_W+nx];
+      if(p>bestPhe){bestPhe=p;bestGx=nx;bestGy=ny;}
+    }
+    fx+=(sim.W*(bestGx+.5)/PHE_W-agent.x)*.01*env.params.cohesion;
+    fy+=(sim.H*(bestGy+.5)/PHE_H-agent.y)*.01*env.params.cohesion;
+  }
+  // Deposit pheromone at current cell if foraging
+  if(pheromone){
+    const gx2=Math.max(0,Math.min(PHE_W-1,Math.floor(agent.x/sim.W*PHE_W)));
+    const gy2=Math.max(0,Math.min(PHE_H-1,Math.floor(agent.y/sim.H*PHE_H)));
+    pheromone[gy2*PHE_W+gx2]=Math.min(1,pheromone[gy2*PHE_W+gx2]+.002);
+  }
+  for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;if(d<18){fx+=dx/(d*d)*env.params.separation*18;fy+=dy/(d*d)*env.params.separation*18;}}
+  return{fx,fy};
+});
+
+registerBehavior('foraging', function(agent,nb,env){
+  let fx=0,fy=0;
+  if(agent.state==='carrying'){
+    const dx=sim.W/2-agent.x,dy=sim.H/2-agent.y,d=Math.hypot(dx,dy)||.001;
+    if(d<20)agent.state='normal';else{fx=dx*.05;fy=dy*.05;}
+  } else {
+    let md=Infinity,near=null;
+    for(const r of resources){if(r.collected)continue;const d=Math.hypot(r.x-agent.x,r.y-agent.y);if(d<md){md=d;near=r;}}
+    if(near){if(md<12){near.collected=true;agent.state='carrying';taskState.collected++;}else{fx+=(near.x-agent.x)*.01*env.params.cohesion;fy+=(near.y-agent.y)*.01*env.params.cohesion;}}
+    else{for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;const rep=Math.max(0,env.params.senseRadius-d);fx+=dx/d*rep*.02;fy+=dy/d*rep*.02;}}
+  }
+  for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;if(d<16){fx+=dx/(d*d)*env.params.separation*18;fy+=dy/(d*d)*env.params.separation*18;}}
+  return{fx,fy};
+});
+
+registerBehavior('splitting', function(agent,nb,env){
+  const phase=(env.frame*.002)%1;let fx=0,fy=0;
+  if(phase<.5){const ga=(agent.id%3)*Math.PI*2/3;fx=(sim.W/2+Math.cos(ga)*sim.W*.24-agent.x)*.02*env.params.cohesion;fy=(sim.H/2+Math.sin(ga)*sim.H*.24-agent.y)*.02*env.params.cohesion;}
+  else{fx=(sim.W/2-agent.x)*.02*env.params.cohesion;fy=(sim.H/2-agent.y)*.02*env.params.cohesion;}
+  for(const b of nb){const dx=agent.x-b.x,dy=agent.y-b.y,d=Math.hypot(dx,dy)||.001;if(d<14){fx+=dx/(d*d)*env.params.separation*18;fy+=dy/(d*d)*env.params.separation*18;}}
+  return{fx,fy};
+});
+
+function updateAlgoUI(){
+  const list=document.getElementById('algoList');
+  // Update registered algo panel
+  const ral=document.getElementById('registeredAlgos');
+  ral.innerHTML='';
+  for(const nm of Object.keys(behaviorRegistry)){
+    const d=document.createElement('div');d.className='algo-itm'+(sim.behavior===nm?' on':'');
+    d.innerHTML=`<div class="algo-nm">${nm}</div><div class="algo-src">${nm.startsWith('custom_')?'custom':'built-in'}</div>`;
+    d.onclick=()=>{setBehavior(nm);d.parentElement.querySelectorAll('.algo-itm').forEach(x=>x.classList.remove('on'));d.classList.add('on');};
+    ral.appendChild(d);
+  }
+  // Update compare selects
+  ['cmpA','cmpB'].forEach(id=>{
+    const sel=document.getElementById(id);const cur=sel.value;sel.innerHTML='';
+    for(const nm of Object.keys(behaviorRegistry)){const o=document.createElement('option');o.value=nm;o.textContent=nm;sel.appendChild(o);}
+    sel.value=cur||Object.keys(behaviorRegistry)[0];
+  });
+}
+
+// ─── CANVAS RESIZE ──────────────────────────────────────
+function resize(){
+  const wrap=document.getElementById('cv'),dpr=devicePixelRatio||1;
+  sim.W=wrap.clientWidth;sim.H=wrap.clientHeight;
+  canvas.width=sim.W*dpr;canvas.height=sim.H*dpr;
+  canvas.style.width=sim.W+'px';canvas.style.height=sim.H+'px';
+  ctx.scale(dpr,dpr);
+  heatCanvas.width=sim.W*dpr;heatCanvas.height=sim.H*dpr;
+  heatCanvas.style.width=sim.W+'px';heatCanvas.style.height=sim.H+'px';
+  heatCtx.scale(dpr,dpr);
+  windCanvas.width=sim.W*dpr;windCanvas.height=sim.H*dpr;
+  windCanvas.style.width=sim.W+'px';windCanvas.style.height=sim.H+'px';
+  windCtx.scale(dpr,dpr);
+  trailCv=document.createElement('canvas');trailCv.width=canvas.width;trailCv.height=canvas.height;
+  trailCtx=trailCv.getContext('2d');trailCtx.scale(dpr,dpr);
+  trajCv=document.createElement('canvas');trajCv.width=canvas.width;trajCv.height=canvas.height;
+  trajCtx=trajCv.getContext('2d');trajCtx.scale(dpr,dpr);
+  covGrid=new Float32Array(COV_W*COV_H);
+  heatAccum=new Float32Array(sim.W*sim.H/16|0);
+  pheromone=new Float32Array(PHE_W*PHE_H);
+}
+
+// ─── AGENT ──────────────────────────────────────────────
+class Agent{
+  constructor(id,x,y){
+    this.id=id;this.x=x;this.y=y;
+    const a=rng()*Math.PI*2,s=.5+rng()*sim.params.maxSpeed;
+    this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s;
+    this.heading=a;this.cluster=0;this.state='normal';
+    this.formX=0;this.formY=0;this.neighbors=[];this.isLeader=false;
+    this.targetX=sim.W/2;this.targetY=sim.H/2;
+    // PSO personal best
+    this.pBestX=x;this.pBestY=y;this.pBestScore=-Infinity;
+    // Task state
+    this.task='idle';this.taskTarget=null;
+  }
+  get speed(){return Math.hypot(this.vx,this.vy);}
+}
+
+// ─── INIT ────────────────────────────────────────────────
+function initSim(seed){
+  if(seed!==undefined){currentSeed=seed;rng=mkRng(seed);}
+  else rng=mkRng(currentSeed);
+  psoBest={x:sim.W/2,y:sim.H/2,score:-Infinity};
+  agents=[];
+  const n=sim.params.agentCount;
+  for(let i=0;i<n;i++) agents.push(spawnAgent(i));
+  agents[0].isLeader=true;
+  obstacles=[];for(let i=0;i<sim.params.obstacleCount;i++) addObs();
+  movingObs=[];for(let i=0;i<sim.params.movingObstacles;i++) addMovObs();
+  resources=[];if(sim.behavior==='foraging'||sim.task==='resource_foraging') spawnRes();
+  predator=sim.viz.predator?mkPred():null;
+  if(trailCtx) trailCtx.clearRect(0,0,trailCv.width,trailCv.height);
+  if(trajCtx) trajCtx.clearRect(0,0,trajCv.width,trajCv.height);
+  if(covGrid) covGrid.fill(0);
+  if(pheromone) pheromone.fill(0);
+  commBuffer={};
+  sim.frame=0;sim.t=0;
+  calcFormTargets();
+  initTask();
+  document.getElementById('hudSeed').textContent=currentSeed;
+  document.getElementById('seedDisp').textContent=currentSeed;
+  log(`Simulation initialized. Seed=${currentSeed} N=${n} algo=${sim.behavior}`,'info');
+}
+
+function spawnAgent(id){
+  let x,y;
+  const mode=sim.spawnMode||'random';
+  if(mode==='cluster'){const cx=sim.W/2+rng()*60-30,cy=sim.H/2+rng()*60-30;x=cx+rng()*80-40;y=cy+rng()*80-40;}
+  else if(mode==='center'){x=sim.W/2+rng()*40-20;y=sim.H/2+rng()*40-20;}
+  else if(mode==='edge'){const side=Math.floor(rng()*4);if(side===0){x=rng()*sim.W;y=20;}else if(side===1){x=rng()*sim.W;y=sim.H-20;}else if(side===2){x=20;y=rng()*sim.H;}else{x=sim.W-20;y=rng()*sim.H;}}
+  else{x=60+rng()*(sim.W-120);y=60+rng()*(sim.H-120);}
+  return new Agent(id,x,y);
+}
+
+function addObs(x,y){obstacles.push({x:x||80+rng()*(sim.W-160),y:y||80+rng()*(sim.H-160),r:16+rng()*24});}
+function addMovObs(){movingObs.push({x:80+rng()*(sim.W-160),y:80+rng()*(sim.H-160),r:14+rng()*16,vx:(rng()-.5)*1.5,vy:(rng()-.5)*1.5});}
+function spawnRes(){for(let i=0;i<20;i++) resources.push({x:80+rng()*(sim.W-160),y:80+rng()*(sim.H-160),r:6,collected:false});}
+function mkPred(){return{x:sim.W/2,y:50,vx:1,vy:.5,speed:3.2};}
+function clearObstacles(){obstacles=[];movingObs=[];sim.params.obstacleCount=0;document.getElementById('pObstacles').value=0;document.getElementById('vObstacles').textContent=0;toast('Obstacles cleared');}
+
+// ─── SPATIAL HASH ────────────────────────────────────────
+function buildHash(){
+  spatHash={};
+  for(let i=0;i<agents.length;i++){
+    const a=agents[i],k=`${Math.floor(a.x/CELL)},${Math.floor(a.y/CELL)}`;
+    (spatHash[k]||(spatHash[k]=[])).push(i);
+  }
+}
+function getNbrs(a,r){
+  const r2=r*r,cells=Math.ceil(r/CELL)+1,cx=Math.floor(a.x/CELL),cy=Math.floor(a.y/CELL),out=[];
+  for(let dx=-cells;dx<=cells;dx++) for(let dy=-cells;dy<=cells;dy++){
+    const cell=spatHash[`${cx+dx},${cy+dy}`];
+    if(!cell) continue;
+    for(const i of cell){const b=agents[i];if(b===a) continue;const ddx=b.x-a.x,ddy=b.y-a.y;if(ddx*ddx+ddy*ddy<=r2) out.push(b);}
+  }
+  return out;
+}
+
+// ─── FORMATION TARGETS ───────────────────────────────────
+function calcFormTargets(){
+  const n=agents.length,cx=sim.W/2,cy=sim.H/2,t=sim.formation;
+  for(let i=0;i<n;i++){
+    let tx=cx,ty=cy;
+    if(t==='circle'){const a=(i/n)*Math.PI*2,r=Math.min(sim.W,sim.H)*.28;tx=cx+Math.cos(a)*r;ty=cy+Math.sin(a)*r;}
+    else if(t==='grid'){const cols=Math.ceil(Math.sqrt(n)),sp=26;tx=cx+(i%cols-cols/2)*sp;ty=cy+(Math.floor(i/cols)-Math.floor(n/cols/2))*sp;}
+    else if(t==='line'){const sp=Math.min(15,(sim.W-100)/n);tx=50+i*sp;ty=cy;}
+    else if(t==='v'){const h=Math.floor(n/2),a2=Math.PI/4;if(i<h){tx=cx-(h-i)*18*Math.cos(a2);ty=cy+(h-i)*18*Math.sin(a2);}else{const j=i-h;tx=cx+j*18*Math.cos(a2);ty=cy+j*18*Math.sin(a2);}}
+    else if(t==='triangle'){const row=Math.floor((-1+Math.sqrt(1+8*i))/2),col=i-row*(row+1)/2;tx=cx+(col-row/2)*22;ty=cy+row*19-(Math.ceil(Math.sqrt(n*2))*19/4);}
+    else if(t==='hex'){if(i===0){tx=cx;ty=cy;}else{let c=1,rng2=1;while(c+6*rng2<=i){c+=6*rng2;rng2++;}const pos=i-c,side=Math.floor(pos/rng2),ins=pos%rng2,sp=24,ha=[0,Math.PI/3,2*Math.PI/3,Math.PI,4*Math.PI/3,5*Math.PI/3];tx=cx+Math.cos(ha[side])*rng2*sp+Math.cos(ha[(side+2)%6])*ins*sp;ty=cy+Math.sin(ha[side])*rng2*sp+Math.sin(ha[(side+2)%6])*ins*sp;}}
+    agents[i].formX=tx;agents[i].formY=ty;
+  }
+}
+
+// ─── ENVIRONMENT FORCES ──────────────────────────────────
+function windForce(){
+  const ang=sim.params.windDir*Math.PI/180,str=sim.params.windStrength;
+  const turb=(rng()-.5)*sim.params.turbulence;
+  return{fx:Math.cos(ang)*str+turb,fy:Math.sin(ang)*str+turb};
+}
+function obsForce(a,allObs){
+  let fx=0,fy=0;
+  for(const o of allObs){const dx=a.x-o.x,dy=a.y-o.y,d=Math.hypot(dx,dy)||.001,cl=o.r+24;if(d<cl){const s=(cl-d)/cl;fx+=dx/d*s*5;fy+=dy/d*s*5;}}
+  return{fx,fy};
+}
+function predForce(a){
+  if(!predator||!sim.viz.predator) return{fx:0,fy:0};
+  const dx=a.x-predator.x,dy=a.y-predator.y,d=Math.hypot(dx,dy)||.001;
+  if(d>160) return{fx:0,fy:0};return{fx:dx/d*(160-d)/160*9,fy:dy/d*(160-d)/160*9};
+}
+function boundForce(a){
+  const m=50,s=.5;
+  return{fx:a.x<m?(m-a.x)*s*.1:a.x>sim.W-m?(sim.W-m-a.x)*s*.1:0,
+         fy:a.y<m?(m-a.y)*s*.1:a.y>sim.H-m?(sim.H-m-a.y)*s*.1:0};
+}
+
+// ─── TASK SYSTEM ─────────────────────────────────────────
+function initTask(){
+  taskState.collected=0;taskState.startFrame=sim.frame;taskState.taskScore=0;
+  const tt=sim.task||taskState.type;
+  if(!tt) return;
+  if(tt==='search_rescue'||tt==='resource_foraging'){
+    taskState.targets=[];taskState.totalTargets=15;
+    for(let i=0;i<15;i++) taskState.targets.push({x:80+rng()*(sim.W-160),y:80+rng()*(sim.H-160),found:false,r:8});
+    if(tt==='resource_foraging') resources=taskState.targets.map(t=>({...t,collected:false,r:6}));
+  } else if(tt==='area_coverage'){
+    covGrid.fill(0);
+  } else if(tt==='target_tracking'){
+    taskState.trackTarget={x:sim.W/2,y:sim.H/2,vx:(rng()-.5)*2,vy:(rng()-.5)*2,r:12};
+  } else if(tt==='task_allocation'){
+    taskState.tasks=[];
+    for(let i=0;i<agents.length;i+=Math.ceil(agents.length/8)){
+      taskState.tasks.push({x:80+rng()*(sim.W-160),y:80+rng()*(sim.H-160),assigned:null,done:false,r:10});
+    }
+  }
+  updateTaskUI();
+}
+
+function updateTask(){
+  const tt=taskState.type;
+  if(!tt) return;
+  if(tt==='search_rescue'){
+    for(const t of taskState.targets){
+      if(t.found) continue;
+      for(const a of agents){if(Math.hypot(a.x-t.x,a.y-t.y)<t.r+a.pBestScore*0+20){t.found=true;taskState.collected++;break;}}
+    }
+  } else if(tt==='area_coverage'){
+    for(const a of agents){
+      const gx=Math.max(0,Math.min(COV_W-1,Math.floor(a.x/sim.W*COV_W)));
+      const gy=Math.max(0,Math.min(COV_H-1,Math.floor(a.y/sim.H*COV_H)));
+      covGrid[gy*COV_W+gx]=Math.min(1,covGrid[gy*COV_W+gx]+.1);
+    }
+  } else if(tt==='target_tracking'&&taskState.trackTarget){
+    const t=taskState.trackTarget;
+    t.x+=t.vx;t.y+=t.vy;
+    if(t.x<30||t.x>sim.W-30) t.vx*=-1;
+    if(t.y<30||t.y>sim.H-30) t.vy*=-1;
+    // score = number of agents near target
+    let n=0;for(const a of agents){if(Math.hypot(a.x-t.x,a.y-t.y)<80) n++;}
+    taskState.taskScore=n;
+    // Force agents toward target
+    for(const a of agents){
+      const dx=t.x-a.x,dy=t.y-a.y,d=Math.hypot(dx,dy)||.001;
+      if(d<120){a.vx+=(dx/d)*sim.params.cohesion*.03;a.vy+=(dy/d)*sim.params.cohesion*.03;}
+    }
+  } else if(tt==='task_allocation'&&taskState.tasks){
+    for(const t of taskState.tasks){
+      if(t.done) continue;
+      for(const a of agents){
+        if(t.assigned===a.id) continue;
+        if(a.task==='idle'&&Math.hypot(a.x-t.x,a.y-t.y)<30){
+          a.task=t.id||t.x;t.assigned=a.id;
+          a.vx+=(t.x-a.x)*.01;a.vy+=(t.y-a.y)*.01;
+        }
+        if(t.assigned===a.id&&Math.hypot(a.x-t.x,a.y-t.y)<10){t.done=true;a.task='idle';taskState.collected++;}
+      }
+    }
+  }
+  updateTaskUI();
+}
+
+function updateTaskUI(){
+  const tt=taskState.type;
+  const el=document.getElementById('taskStatusContent');
+  if(!tt){el.textContent='No task active.';return;}
+  let html=`<div style="color:var(--teal);margin-bottom:6px;font-weight:600">${tt.replace(/_/g,' ').toUpperCase()}</div>`;
+  html+=`<div class="irow"><span>Elapsed</span><span class="ival">${(sim.frame-taskState.startFrame)} frames</span></div>`;
+  if(tt==='search_rescue'||tt==='resource_foraging'||tt==='task_allocation'){
+    const tot=taskState.totalTargets||(taskState.tasks?taskState.tasks.length:0);
+    html+=`<div class="irow"><span>Collected</span><span class="ival">${taskState.collected} / ${tot}</span></div>`;
+    const pct=tot?Math.round(taskState.collected/tot*100):0;
+    html+=`<div class="irow"><span>Progress</span><span class="ival">${pct}%</span></div>`;
+    html+=`<div style="margin-top:6px;height:2px;background:var(--b4)"><div style="height:100%;background:var(--green);width:${pct}%"></div></div>`;
+  } else if(tt==='target_tracking'){
+    html+=`<div class="irow"><span>Tracking score</span><span class="ival">${taskState.taskScore} agents</span></div>`;
+  } else if(tt==='area_coverage'){
+    const covered=covGrid?Array.from(covGrid).filter(v=>v>.05).length:0;
+    const pct=Math.round(covered/(COV_W*COV_H)*100);
+    html+=`<div class="irow"><span>Coverage</span><span class="ival">${pct}%</span></div>`;
+  }
+  el.innerHTML=html;
+  document.getElementById('ftTask').textContent=tt.replace(/_/g,' ');
+}
+
+// ─── MAIN UPDATE ─────────────────────────────────────────
+function update(){
+  buildHash();
+  if(sim.behavior==='formation') calcFormTargets();
+  // Decay pheromone
+  if(pheromone) for(let i=0;i<pheromone.length;i++) pheromone[i]*=.998;
+  // Update moving obstacles
+  const allObs=[...obstacles,...movingObs];
+  for(const o of movingObs){
+    o.x+=o.vx;o.y+=o.vy;
+    if(o.x<30||o.x>sim.W-30) o.vx*=-1;
+    if(o.y<30||o.y>sim.H-30) o.vy*=-1;
+  }
+  const wf=windForce();
+  const env={W:sim.W,H:sim.H,frame:sim.frame,params:sim.params,obstacles:allObs,wind:wf};
+  const bFn=behaviorRegistry[sim.behavior]||behaviorRegistry['flocking'];
+
+  for(const a of agents){
+    // Sensor noise on position read
+    const sn=sim.params.sensorNoise;
+    const rx=a.x+(rng()-.5)*sn*2, ry=a.y+(rng()-.5)*sn*2;
+    const nb=getNbrs({x:rx,y:ry,cluster:a.cluster,isLeader:a.isLeader,id:a.id},sim.params.commRadius).map(b=>{
+      // Apply GPS error to neighbor positions
+      const ge=sim.params.gpsError;
+      if(ge>0) return Object.assign({},b,{x:b.x+(rng()-.5)*ge*2,y:b.y+(rng()-.5)*ge*2});
+      return b;
+    });
+    a.neighbors=nb;
+
+    const b=bFn(a,nb,env);
+    const o=obsForce(a,allObs);
+    const p=predForce(a);
+    const bd=boundForce(a);
+    const na=rng()*Math.PI*2;
+
+    a.vx+=(b.fx+o.fx+p.fx+bd.fx+wf.fx+Math.cos(na)*sim.params.noise)*sim.dt;
+    a.vy+=(b.fy+o.fy+p.fy+bd.fy+wf.fy+Math.sin(na)*sim.params.noise)*sim.dt;
+
+    const sp=Math.hypot(a.vx,a.vy);
+    if(sp>sim.params.maxSpeed){a.vx=a.vx/sp*sim.params.maxSpeed;a.vy=a.vy/sp*sim.params.maxSpeed;}
+    a.heading=Math.atan2(a.vy,a.vx);
+    a.x=Math.max(0,Math.min(sim.W,a.x+a.vx));
+    a.y=Math.max(0,Math.min(sim.H,a.y+a.vy));
+
+    // Update coverage grid
+    if(covGrid){
+      const gx=Math.max(0,Math.min(COV_W-1,Math.floor(a.x/sim.W*COV_W)));
+      const gy=Math.max(0,Math.min(COV_H-1,Math.floor(a.y/sim.H*COV_H)));
+      covGrid[gy*COV_W+gx]=Math.min(1,covGrid[gy*COV_W+gx]+.05);
+    }
+
+    // Trajectory recording
+    if(sim.viz.trajectories&&trajCtx){
+      trajCtx.beginPath();trajCtx.arc(a.x,a.y,.6,0,Math.PI*2);
+      const col=CCOLS[a.cluster%CCOLS.length];
+      trajCtx.fillStyle=col+'60';trajCtx.fill();
+    }
+  }
+
+  // Update predator
+  if(predator&&sim.viz.predator){
+    let cx=0,cy=0,n=0;for(const a of agents){const d=Math.hypot(a.x-predator.x,a.y-predator.y);if(d<200){cx+=a.x;cy+=a.y;n++;}}
+    if(n){const dx=cx/n-predator.x,dy=cy/n-predator.y,d=Math.hypot(dx,dy)||.001;predator.vx+=dx/d*.3;predator.vy+=dy/d*.3;}
+    const ps=Math.hypot(predator.vx,predator.vy);if(ps>predator.speed){predator.vx=predator.vx/ps*predator.speed;predator.vy=predator.vy/ps*predator.speed;}
+    predator.x+=predator.vx;predator.y+=predator.vy;
+    if(predator.x<20||predator.x>sim.W-20) predator.vx*=-1;
+    if(predator.y<20||predator.y>sim.H-20) predator.vy*=-1;
+  }
+
+  updateTask();
+  sim.frame++;sim.t+=sim.dt*.016;
+}
+
+// ─── CLUSTER DETECTION ───────────────────────────────────
+function detectClusters(){
+  for(const a of agents) a.cluster=-1;let cid=0;
+  for(const a of agents){
+    if(a.cluster!==-1) continue;a.cluster=cid;
+    const q=[a];let qi=0;
+    while(qi<q.length){
+      const cur=q[qi++];
+      for(const nb of getNbrs(cur,sim.params.commRadius*.8)){if(nb.cluster===-1){nb.cluster=cid;q.push(nb);}}
+    }cid++;
+  }return cid;
+}
+
+// ─── METRICS ─────────────────────────────────────────────
+let mtick=0;
+function collectMetrics(){
+  let td=0,tn=0;
+  for(let i=0;i<Math.min(agents.length,60);i++){
+    const a=agents[Math.floor(rng()*agents.length)];
+    for(const b of a.neighbors.slice(0,4)){td+=Math.hypot(a.x-b.x,a.y-b.y);tn++;}
+  }
+  const avgD=tn?td/tn:0;
+  const cl=detectClusters();
+  const gW=20,gH=14;const occ=new Set();
+  for(const a of agents) occ.add(`${Math.floor(a.x/(sim.W/gW))},${Math.floor(a.y/(sim.H/gH))}`);
+  const cov=Math.round(occ.size/(gW*gH)*100);
+  let ts=0;for(const a of agents) ts+=a.speed;const avgS=ts/agents.length;
+  let vx=0,vy=0;for(const a of agents){vx+=Math.cos(a.heading);vy+=Math.sin(a.heading);}
+  const phi=Math.hypot(vx,vy)/agents.length;
+  // Entropy (Shannon, based on heading distribution)
+  const bins=16;const hBins=new Array(bins).fill(0);
+  for(const a of agents){const b=Math.floor((a.heading+Math.PI)/(2*Math.PI)*bins)%bins;hBins[b]++;}
+  let H=0;for(const c of hBins){const p=c/agents.length;if(p>0) H-=p*Math.log2(p);}
+  // Formation error
+  let formErr=0;
+  if(sim.behavior==='formation'){for(const a of agents) formErr+=Math.hypot(a.x-a.formX,a.y-a.formY);formErr/=agents.length;}
+  return{avgD,cl,cov,avgS,phi,H,formErr};
+}
+
+function doMetrics(){
+  if(++mtick%8!==0) return;
+  const m=collectMetrics();
+  setM('mDist',m.avgD.toFixed(1),'mDistBar',Math.min(100,m.avgD/150*100),'var(--teal)');
+  setM('mClusters',m.cl,'mClBar',Math.min(100,m.cl/10*100),'var(--purple)');
+  setM('mCov',m.cov+'%','mCovBar',m.cov,'var(--green)');
+  setM('mSpd',m.avgS.toFixed(2),'mSpdBar',Math.min(100,m.avgS/sim.params.maxSpeed*100),'var(--amber)');
+  setM('mPhi',m.phi.toFixed(3),'mPhiBar',m.phi*100,m.phi>.7?'var(--green)':m.phi>.4?'var(--amber)':'var(--blue)');
+  setM('mEntropy',m.H.toFixed(2),'mEntBar',m.H/4*100,'var(--pink)');
+  setM('mFormErr',m.formErr.toFixed(1),'mFormBar',Math.min(100,m.formErr/200*100),'var(--red)');
+  pushH(hist.cov,m.cov);pushH(hist.dist,m.avgD);pushH(hist.phi,m.phi);
+  spark('spCov',hist.cov,'var(--green)',100);
+  spark('spPhi',hist.phi,'var(--amber)',1);
+  spark('spDist',hist.dist,'var(--teal)',null);
+  doDensity();doInspect();
+  document.getElementById('ftObs').textContent=obstacles.length+movingObs.length;
+  document.getElementById('ftLoss').textContent=Math.round(sim.params.commFail*100)+'%';
+  document.getElementById('ftWind').textContent=sim.params.windStrength.toFixed(1);
+}
+
+function pushH(arr,v){arr.push(v);if(arr.length>hist.max)arr.shift();}
+function setM(id,v,bid,pct,col){
+  document.getElementById(id).textContent=v;
+  const b=document.getElementById(bid);if(b){b.style.width=Math.max(0,Math.min(100,pct))+'%';if(col)b.style.background=col;}
+}
+function spark(id,data,col,maxV){
+  const cv=document.getElementById(id);if(!cv||data.length<2)return;
+  const ct=cv.getContext('2d'),w=cv.clientWidth||220,h=32;
+  cv.width=w;cv.height=h;ct.clearRect(0,0,w,h);
+  const mx=maxV!=null?(maxV||1):(Math.max(...data)||1);
+  ct.beginPath();data.forEach((v,i)=>{const x=i/(data.length-1)*w,y=h-(v/mx)*h*.88-2;i?ct.lineTo(x,y):ct.moveTo(x,y);});
+  ct.strokeStyle=col;ct.lineWidth=1.5;ct.stroke();
+  ct.lineTo(w,h);ct.lineTo(0,h);ct.closePath();ct.fillStyle=col+'1a';ct.fill();
+}
+function doDensity(){
+  const dc=document.getElementById('densMap'),dt=dc.getContext('2d'),dw=dc.width,dh=dc.height;
+  dt.fillStyle='#08090d';dt.fillRect(0,0,dw,dh);
+  const cols=16,rows=10,cw=dw/cols,ch=dh/rows,cnts=new Array(cols*rows).fill(0);
+  for(const a of agents){const gx=Math.min(cols-1,Math.floor(a.x/sim.W*cols)),gy=Math.min(rows-1,Math.floor(a.y/sim.H*rows));cnts[gy*cols+gx]++;}
+  const mx=Math.max(...cnts,1);
+  for(let i=0;i<cnts.length;i++){const v=cnts[i]/mx;if(v<.01)continue;const gx=i%cols,gy=Math.floor(i/cols);dt.fillStyle=`rgba(${Math.round(v*77)},${Math.round(v*200+55)},${Math.round((1-v)*255)},${.5+v*.5})`;dt.fillRect(gx*cw+.5,gy*ch+.5,cw-1,ch-1);}
+}
+function doInspect(){
+  const el=document.getElementById('inspector');
+  if(!selAgent){el.innerHTML='<div style="color:var(--i4);font-size:9px">Click any agent to inspect</div>';return;}
+  const a=selAgent;
+  el.innerHTML=`<div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">#${a.id}${a.isLeader?' [LEADER]':''}</div>`+
+  [['pos',(a.x.toFixed(1)+','+a.y.toFixed(1))],['vel',(a.vx.toFixed(2)+','+a.vy.toFixed(2))],['speed',a.speed.toFixed(3)],['hdg',(a.heading*180/Math.PI).toFixed(1)+'°'],['nbrs',a.neighbors.length],['cluster',a.cluster],['state',a.state],['task',a.task]]
+  .map(([k,v])=>`<div class="irow"><span>${k}</span><span class="ival">${v}</span></div>`).join('');
+}
+
+// ─── RENDER ──────────────────────────────────────────────
+function render(){
+  ctx.fillStyle='#08090d';ctx.fillRect(0,0,sim.W,sim.H);
+
+  if(sim.viz.grid){ctx.strokeStyle='rgba(255,255,255,.026)';ctx.lineWidth=1;for(let x=0;x<sim.W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,sim.H);ctx.stroke();}for(let y=0;y<sim.H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(sim.W,y);ctx.stroke();}}
+
+  if(sim.viz.trails){ctx.globalAlpha=.86;ctx.drawImage(trailCv,0,0,sim.W,sim.H);ctx.globalAlpha=1;}
+
+  // Coverage overlay
+  if(sim.cvTab==='coverage'&&covGrid){
+    for(let i=0;i<COV_W*COV_H;i++){
+      const v=covGrid[i];if(v<.02) continue;
+      const gx=i%COV_W,gy=Math.floor(i/COV_W);
+      const cw=sim.W/COV_W,ch=sim.H/COV_H;
+      ctx.fillStyle=`rgba(45,214,140,${v*.35})`;
+      ctx.fillRect(gx*cw,gy*ch,cw,ch);
+    }
+  }
+
+  // Trajectory overlay
+  if(sim.cvTab==='trajectories'){ctx.globalAlpha=.7;ctx.drawImage(trajCv,0,0,sim.W,sim.H);ctx.globalAlpha=1;}
+
+  // Density overlay
+  if(sim.cvTab==='density'){
+    const res=8;
+    for(let gx=0;gx<Math.ceil(sim.W/res);gx++) for(let gy=0;gy<Math.ceil(sim.H/res);gy++){
+      let cnt=0;const qx=gx*res,qy=gy*res;
+      for(const a of agents){if(Math.abs(a.x-qx)<res*2&&Math.abs(a.y-qy)<res*2) cnt++;}
+      if(cnt>0){ctx.fillStyle=`rgba(77,159,255,${Math.min(.8,cnt*.06)})`;ctx.fillRect(qx,qy,res,res);}
+    }
+  }
+
+  // Pheromone
+  if(sim.behavior==='aco'&&pheromone){
+    const pw=sim.W/PHE_W,ph=sim.H/PHE_H;
+    for(let i=0;i<pheromone.length;i++){
+      const v=pheromone[i];if(v<.01) continue;
+      const px=(i%PHE_W)*pw,py=Math.floor(i/PHE_W)*ph;
+      ctx.fillStyle=`rgba(245,166,35,${v*.4})`;ctx.fillRect(px,py,pw,ph);
+    }
+  }
+
+  // Formation targets
+  if(sim.viz.formtargets&&sim.behavior==='formation'){for(const a of agents){ctx.beginPath();ctx.arc(a.formX,a.formY,2.5,0,Math.PI*2);ctx.fillStyle='rgba(77,159,255,.15)';ctx.fill();}}
+
+  // Obstacles
+  if(sim.viz.obstacles){
+    for(const o of [...obstacles,...movingObs]){
+      ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(232,68,90,.07)';ctx.fill();
+      ctx.strokeStyle='rgba(232,68,90,.38)';ctx.lineWidth=1;ctx.stroke();
+      ctx.strokeStyle='rgba(232,68,90,.2)';ctx.lineWidth=.5;
+      ctx.beginPath();ctx.moveTo(o.x-o.r*.7,o.y);ctx.lineTo(o.x+o.r*.7,o.y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(o.x,o.y-o.r*.7);ctx.lineTo(o.x,o.y+o.r*.7);ctx.stroke();
+    }
+  }
+
+  // Resources
+  if(resources.length){
+    for(const r of resources){
+      if(r.collected) continue;
+      ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(45,214,140,.18)';ctx.fill();
+      ctx.strokeStyle='rgba(45,214,140,.65)';ctx.lineWidth=1;ctx.stroke();
+    }
+    // Nest
+    ctx.beginPath();ctx.arc(sim.W/2,sim.H/2,18,0,Math.PI*2);ctx.strokeStyle='rgba(245,166,35,.35)';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  // Task: search targets
+  if(taskState.type==='search_rescue'){
+    for(const t of taskState.targets){
+      if(t.found){ctx.beginPath();ctx.arc(t.x,t.y,t.r,0,Math.PI*2);ctx.fillStyle='rgba(45,214,140,.3)';ctx.fill();}
+      else{ctx.beginPath();ctx.arc(t.x,t.y,t.r,0,Math.PI*2);ctx.strokeStyle='rgba(245,166,35,.5)';ctx.lineWidth=1;ctx.stroke();ctx.beginPath();ctx.arc(t.x,t.y,4,0,Math.PI*2);ctx.fillStyle='#f5a623';ctx.fill();}
+    }
+  }
+
+  // Task: target tracking
+  if(taskState.type==='target_tracking'&&taskState.trackTarget){
+    const tt=taskState.trackTarget;
+    ctx.beginPath();ctx.arc(tt.x,tt.y,tt.r,0,Math.PI*2);ctx.strokeStyle='rgba(255,110,180,.7)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.arc(tt.x,tt.y,80,0,Math.PI*2);ctx.strokeStyle='rgba(255,110,180,.08)';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  // Comm links
+  if(sim.viz.links||sim.viz.commgraph){
+    for(const a of agents){
+      for(const b of a.neighbors.slice(0,sim.viz.commgraph?6:3)){
+        const d=Math.hypot(a.x-b.x,a.y-b.y),al=Math.max(0,1-d/sim.params.commRadius)*.12;
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+        ctx.strokeStyle=`rgba(77,159,255,${al})`;ctx.lineWidth=.6;ctx.stroke();
+      }
+    }
+  }
+
+  // PSO global best marker
+  if(sim.behavior==='pso'){
+    ctx.beginPath();ctx.arc(psoBest.x,psoBest.y,10,0,Math.PI*2);
+    ctx.strokeStyle='rgba(155,127,255,.7)';ctx.lineWidth=1.5;ctx.stroke();
+  }
+
+  // Agents
+  for(const a of agents) drawA(a);
+
+  // Predator
+  if(sim.viz.predator&&predator){
+    ctx.save();ctx.translate(predator.x,predator.y);ctx.rotate(Math.atan2(predator.vy,predator.vx));
+    ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(-9,-7);ctx.lineTo(-5,0);ctx.lineTo(-9,7);ctx.closePath();
+    ctx.fillStyle='#e8445a';ctx.fill();ctx.strokeStyle='rgba(232,68,90,.5)';ctx.lineWidth=1;ctx.stroke();
+    ctx.restore();
+    ctx.beginPath();ctx.arc(predator.x,predator.y,70,0,Math.PI*2);ctx.strokeStyle='rgba(232,68,90,.06)';ctx.lineWidth=1;ctx.stroke();
+  }
+
+  // Wind arrow
+  if(sim.viz.wind&&sim.params.windStrength>.02){
+    const ang=sim.params.windDir*Math.PI/180,wx=60,wy=sim.H-50;
+    ctx.save();ctx.translate(wx,wy);ctx.rotate(ang);
+    const l=20+sim.params.windStrength*15;
+    ctx.strokeStyle='rgba(200,240,255,.4)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(-l/2,0);ctx.lineTo(l/2,0);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(l/2,0);ctx.lineTo(l/2-6,-4);ctx.lineTo(l/2-6,4);ctx.closePath();
+    ctx.fillStyle='rgba(200,240,255,.4)';ctx.fill();
+    ctx.restore();
+    ctx.fillStyle='rgba(200,240,255,.3)';ctx.font='9px IBM Plex Mono';ctx.fillText(`WIND ${sim.params.windStrength.toFixed(2)}`,70,sim.H-46);
+  }
+
+  // Update trails
+  if(sim.viz.trails){
+    trailCtx.globalAlpha=.95;trailCtx.fillStyle='rgba(8,9,13,.16)';trailCtx.fillRect(0,0,sim.W,sim.H);
+    trailCtx.globalAlpha=.4;
+    for(const a of agents){const col=sim.viz.clusters?CCOLS[a.cluster%CCOLS.length]:'#4d9fff';trailCtx.beginPath();trailCtx.arc(a.x,a.y,.7,0,Math.PI*2);trailCtx.fillStyle=col;trailCtx.fill();}
+    trailCtx.globalAlpha=1;
+  }
+}
+
+function drawA(a){
+  const col=sim.viz.clusters?CCOLS[a.cluster%CCOLS.length]:'#4d9fff',sz=a.isLeader?7:4.5;
+  ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.heading);
+  ctx.beginPath();ctx.moveTo(sz*1.9,0);ctx.lineTo(-sz,.65*sz);ctx.lineTo(-sz*.4,0);ctx.lineTo(-sz,-.65*sz);ctx.closePath();
+  ctx.fillStyle=col;ctx.globalAlpha=.9;ctx.fill();
+  if(a.isLeader){ctx.strokeStyle='rgba(245,166,35,.8)';ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=.2;ctx.strokeStyle='#f5a623';ctx.lineWidth=.5;ctx.beginPath();ctx.arc(0,0,11,0,Math.PI*2);ctx.stroke();}
+  if(a.state==='carrying'){ctx.globalAlpha=1;ctx.beginPath();ctx.arc(0,-7,3,0,Math.PI*2);ctx.fillStyle='#2dd68c';ctx.fill();}
+  ctx.globalAlpha=1;ctx.restore();
+  if(a===selAgent){ctx.beginPath();ctx.arc(a.x,a.y,13,0,Math.PI*2);ctx.strokeStyle='rgba(245,166,35,.9)';ctx.lineWidth=1.5;ctx.stroke();}
+  if(sim.viz.velocity){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(a.x+a.vx*5,a.y+a.vy*5);ctx.strokeStyle='rgba(200,240,255,.17)';ctx.lineWidth=.8;ctx.stroke();}
+  if(sim.viz.sense&&(a===selAgent||rng()<.003)){ctx.beginPath();ctx.arc(a.x,a.y,sim.params.senseRadius,0,Math.PI*2);ctx.strokeStyle='rgba(77,159,255,.08)';ctx.lineWidth=.6;ctx.stroke();}
+}
+
+// ─── EXPERIMENT SYSTEM ───────────────────────────────────
+const sweepParams={};
+
+function addSweepRow(){
+  const p=document.getElementById('sweepParam').value;
+  if(!p) return;
+  if(sweepParams[p]){toast('Parameter already added');return;}
+  sweepParams[p]={min:0,max:1,steps:3};
+  renderSweepRows();
+  calcExpStats();
+}
+
+function renderSweepRows(){
+  const c=document.getElementById('sweepRows');c.innerHTML='';
+  for(const[param,cfg] of Object.entries(sweepParams)){
+    const d=document.createElement('div');d.className='sweep-row';
+    d.innerHTML=`<span class="sweep-lbl">${param}</span>
+      <input class="sweep-inp" data-p="${param}" data-f="min" value="${cfg.min}" placeholder="min">
+      <input class="sweep-inp" data-p="${param}" data-f="max" value="${cfg.max}" placeholder="max">
+      <input class="sweep-inp" data-p="${param}" data-f="steps" value="${cfg.steps}" placeholder="steps">
+      <button class="sweep-rm" data-p="${param}">✕</button>`;
+    c.appendChild(d);
+  }
+  c.querySelectorAll('.sweep-inp').forEach(el=>el.addEventListener('change',()=>{sweepParams[el.dataset.p][el.dataset.f]=parseFloat(el.value)||0;calcExpStats();}));
+  c.querySelectorAll('.sweep-rm').forEach(el=>el.addEventListener('click',()=>{delete sweepParams[el.dataset.p];renderSweepRows();calcExpStats();}));
+}
+
+function generateSweepConfigs(){
+  const keys=Object.keys(sweepParams);
+  if(!keys.length) return[{...sim.params}];
+  // Cartesian product
+  let configs=[{...sim.params}];
+  for(const key of keys){
+    const{min,max,steps}=sweepParams[key];const n=Math.max(2,Math.round(steps));
+    const newCfgs=[];
+    for(const cfg of configs){
+      for(let i=0;i<n;i++){
+        const v=min+(max-min)*(i/(n-1));
+        newCfgs.push({...cfg,[key]:+v.toFixed(4)});
+      }
+    }
+    configs=newCfgs;
+  }
+  return configs;
+}
+
+function calcExpStats(){
+  const cfgs=generateSweepConfigs();
+  const runs=parseInt(document.getElementById('expRuns').value)||1;
+  document.getElementById('expCfgCount').textContent=cfgs.length;
+  document.getElementById('expTotalRuns').textContent=cfgs.length*runs;
+}
+
+async function runBatchExperiment(){
+  if(batchRunning){toast('Batch already running');return;}
+  batchRunning=true;batchStop=false;
+  expResults=[];
+  const wasRunning=sim.running;sim.running=false;
+  const configs=generateSweepConfigs();
+  const runs=parseInt(document.getElementById('expRuns').value)||1;
+  const frames=parseInt(document.getElementById('expFrames').value)||300;
+  const mc=parseInt(document.getElementById('expMC').value)||0;
+  const totalRuns=configs.length*runs;
+  let done=0;
+  document.getElementById('expProgress').style.display='block';
+  log(`Batch experiment started: ${configs.length} configs × ${runs} runs = ${totalRuns} total`,'info');
+
+  for(const cfg of configs){
+    if(batchStop) break;
+    for(let r=0;r<runs;r++){
+      if(batchStop) break;
+      const seed=mc?Math.floor(Math.random()*99999)+1:currentSeed+done;
+      // Run simulation headlessly
+      const params={...sim.params,...cfg};
+      const result=await runHeadless(params,frames,seed);
+      result.config={...cfg};result.seed=seed;result.run=r;
+      expResults.push(result);
+      done++;
+      const pct=done/totalRuns*100;
+      document.getElementById('expProgressFill').style.width=pct+'%';
+      document.getElementById('batchStatus').textContent=`Running ${done}/${totalRuns} (${pct.toFixed(0)}%)`;
+      updateExpResults();
+      await new Promise(r2=>setTimeout(r2,0)); // yield
+    }
+  }
+
+  batchRunning=false;
+  document.getElementById('expProgress').style.display='none';
+  document.getElementById('batchStatus').textContent=`Done. ${expResults.length} results collected.`;
+  sim.running=wasRunning;
+  document.getElementById('resultsModal').classList.add('open');
+  buildResultsTable();
+  log(`Batch complete: ${expResults.length} results`,'ok');
+}
+
+function stopBatch(){batchStop=true;batchRunning=false;toast('Batch stopped');}
+
+async function runHeadless(params,frames,seed){
+  const r=mkRng(seed);
+  const n=Math.round(params.agentCount||120);
+  const ags=[];for(let i=0;i<n;i++){const a=r()*Math.PI*2,s=.5+r()*params.maxSpeed;ags.push({x:60+r()*(sim.W-120),y:60+r()*(sim.H-120),vx:Math.cos(a)*s,vy:Math.sin(a)*s,heading:a,cluster:0,neighbors:[],isLeader:i===0,state:'normal',formX:sim.W/2,formY:sim.H/2,targetX:sim.W/2,targetY:sim.H/2,pBestX:0,pBestY:0,pBestScore:-Infinity,id:i,task:'idle'});}
+  const bFn=behaviorRegistry[sim.behavior]||behaviorRegistry['flocking'];
+  const env={W:sim.W,H:sim.H,frame:0,params,obstacles:[],wind:{fx:0,fy:0}};
+  // Run frames
+  for(let f=0;f<frames;f++){
+    env.frame=f;
+    // Simplified spatial hash
+    const sh={};for(let i=0;i<ags.length;i++){const a=ags[i],k=`${Math.floor(a.x/CELL)},${Math.floor(a.y/CELL)}`;(sh[k]||(sh[k]=[])).push(i);}
+    for(const a of ags){
+      const r2=params.commRadius**2,cells=Math.ceil(params.commRadius/CELL)+1,cx=Math.floor(a.x/CELL),cy=Math.floor(a.y/CELL),nb=[];
+      for(let dx=-cells;dx<=cells;dx++) for(let dy=-cells;dy<=cells;dy++){const cell=sh[`${cx+dx},${cy+dy}`];if(!cell) continue;for(const i of cell){const b=ags[i];if(b===a) continue;const ddx=b.x-a.x,ddy=b.y-a.y;if(ddx*ddx+ddy*ddy<=r2) nb.push(b);}}
+      a.neighbors=nb;
+      const bf=bFn(a,nb,env);const na=r()*Math.PI*2;
+      a.vx+=(bf.fx+Math.cos(na)*params.noise);a.vy+=(bf.fy+Math.sin(na)*params.noise);
+      const sp=Math.hypot(a.vx,a.vy);if(sp>params.maxSpeed){a.vx=a.vx/sp*params.maxSpeed;a.vy=a.vy/sp*params.maxSpeed;}
+      a.heading=Math.atan2(a.vy,a.vx);a.x=Math.max(0,Math.min(sim.W,a.x+a.vx));a.y=Math.max(0,Math.min(sim.H,a.y+a.vy));
+    }
+  }
+  // Collect final metrics
+  let td=0,tn=0;for(const a of ags){for(const b of a.neighbors.slice(0,4)){td+=Math.hypot(a.x-b.x,a.y-b.y);tn++;}}
+  const avgD=tn?td/tn:0;
+  let vx=0,vy=0;for(const a of ags){vx+=Math.cos(a.heading);vy+=Math.sin(a.heading);}
+  const phi=Math.hypot(vx,vy)/ags.length;
+  const occ=new Set();for(const a of ags) occ.add(`${Math.floor(a.x/(sim.W/20))},${Math.floor(a.y/(sim.H/14))}`);
+  const cov=Math.round(occ.size/280*100);
+  let H=0;const bins=16;const hb=new Array(bins).fill(0);for(const a of ags){const b=Math.floor((a.heading+Math.PI)/(2*Math.PI)*bins)%bins;hb[b]++;}
+  for(const c of hb){const p=c/ags.length;if(p>0) H-=p*Math.log2(p);}
+  return{avgD:+avgD.toFixed(2),phi:+phi.toFixed(4),cov,entropy:+H.toFixed(3),frames,n:ags.length};
+}
+
+function updateExpResults(){
+  const el=document.getElementById('expResults');
+  if(!expResults.length){el.textContent='No results yet.';return;}
+  const last=expResults[expResults.length-1];
+  el.innerHTML=`<div style="color:var(--i2);margin-bottom:4px">${expResults.length} runs completed</div>`+
+  `<div class="irow"><span>Last Φ</span><span class="ival">${last.phi}</span></div>`+
+  `<div class="irow"><span>Last coverage</span><span class="ival">${last.cov}%</span></div>`+
+  `<div class="irow"><span>Last avg dist</span><span class="ival">${last.avgD}</span></div>`+
+  `<div class="irow"><span>Entropy H</span><span class="ival">${last.entropy}</span></div>`;
+}
+
+function buildResultsTable(){
+  const el=document.getElementById('resultsModalContent');
+  if(!expResults.length){el.innerHTML='<div style="color:var(--i3)">No results.</div>';return;}
+  const keys=['run','seed','phi','cov','avgD','entropy','frames','n'];
+  // Sweep param headers
+  const cfgKeys=Object.keys(expResults[0].config||{});
+  const allKeys=[...cfgKeys,...keys];
+  let html=`<table class="result-table"><thead><tr>${allKeys.map(k=>`<th>${k}</th>`).join('')}</tr></thead><tbody>`;
+  for(const r of expResults){
+    html+=`<tr>${allKeys.map(k=>{const v=r.config&&k in r.config?r.config[k]:r[k];return`<td>${v??'—'}</td>`;}).join('')}</tr>`;
+  }
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+
+function exportExpCSV(){
+  if(!expResults.length){toast('No results to export');return;}
+  const cfgKeys=Object.keys(expResults[0].config||{});
+  const keys=[...cfgKeys,'run','seed','phi','cov','avgD','entropy','frames','n'];
+  let csv=keys.join(',')+'\n';
+  for(const r of expResults){csv+=keys.map(k=>r.config&&k in r.config?r.config[k]:r[k]??'').join(',')+'\n';}
+  download('swarm_experiment_'+Date.now()+'.csv','text/csv',csv);
+  toast('Exported experiment CSV');
+}
+function exportExpJSON(){
+  if(!expResults.length){toast('No results to export');return;}
+  download('swarm_experiment_'+Date.now()+'.json','application/json',JSON.stringify({experiment:{name:document.getElementById('expName').value,behavior:sim.behavior,sweepParams},results:expResults},null,2));
+  toast('Exported experiment JSON');
+}
+
+// ─── ALGO LAB ────────────────────────────────────────────
+function registerCustomAlgo(){
+  const name=document.getElementById('algoName').value.trim().replace(/\s+/g,'_')||'custom_1';
+  const code=document.getElementById('algoCode').value;
+  const errEl=document.getElementById('algoError');
+  try{
+    const fn=new Function('agent','nb','env',code);
+    const test=fn({x:100,y:100,vx:1,vy:0,heading:0,id:0,state:'normal',formX:100,formY:100,targetX:200,targetY:200,neighbors:[],isLeader:false,pBestX:100,pBestY:100,pBestScore:0,task:'idle'},[],{W:800,H:600,frame:0,params:sim.params,obstacles:[],wind:{fx:0,fy:0}});
+    if(typeof test.fx!=='number'||typeof test.fy!=='number') throw new Error('Must return {fx, fy}');
+    registerBehavior('custom_'+name,fn);
+    errEl.textContent='';
+    toast('Algorithm "custom_'+name+'" registered');
+  }catch(e){errEl.textContent='Error: '+e.message;}
+}
+function testCustomAlgo(){
+  const code=document.getElementById('algoCode').value;const errEl=document.getElementById('algoError');
+  try{const fn=new Function('agent','nb','env',code);const r=fn({x:100,y:100,vx:1,vy:0,heading:0,id:0,state:'normal',formX:100,formY:100,targetX:200,targetY:200,neighbors:[],isLeader:false,pBestX:100,pBestY:100,pBestScore:0,task:'idle'},[],{W:800,H:600,frame:0,params:sim.params,obstacles:[],wind:{fx:0,fy:0}});errEl.style.color='var(--green)';errEl.textContent='✓ Valid. Output: {fx:'+r.fx.toFixed(3)+', fy:'+r.fy.toFixed(3)+'}';}catch(e){errEl.style.color='var(--red)';errEl.textContent='Error: '+e.message;}
+}
+
+async function runAlgoComparison(){
+  const algoA=document.getElementById('cmpA').value,algoB=document.getElementById('cmpB').value;
+  const frames=100,seed=currentSeed;
+  const [rA,rB]=await Promise.all([
+    runHeadlessWithAlgo(algoA,{...sim.params},frames,seed),
+    runHeadlessWithAlgo(algoB,{...sim.params},frames,seed)
+  ]);
+  const el=document.getElementById('cmpResult');
+  el.innerHTML=`<div style="color:var(--ice);margin-bottom:6px">Comparison (${frames} frames, seed ${seed})</div>`+
+  `<table class="result-table" style="font-size:9px"><thead><tr><th>Metric</th><th>${algoA}</th><th>${algoB}</th><th>Winner</th></tr></thead><tbody>`+
+  [['Consensus Φ',rA.phi,rB.phi,rA.phi>rB.phi?algoA:algoB],['Coverage %',rA.cov,rB.cov,rA.cov>rB.cov?algoA:algoB],['Avg Dist',rA.avgD,rB.avgD,'—'],['Entropy H',rA.entropy,rB.entropy,'—']]
+  .map(([nm,a,b,w])=>`<tr><td>${nm}</td><td>${typeof a==='number'?a.toFixed(3):a}</td><td>${typeof b==='number'?b.toFixed(3):b}</td><td style="color:var(--teal)">${w}</td></tr>`).join('')+
+  '</tbody></table>';
+  log(`Comparison: ${algoA} vs ${algoB} complete`,'ok');
+}
+
+async function runHeadlessWithAlgo(algoName,params,frames,seed){
+  const saved=sim.behavior;sim.behavior=algoName;
+  const r=await runHeadless(params,frames,seed);
+  sim.behavior=saved;return r;
+}
+
+// ─── TASK LOADING ────────────────────────────────────────
+function loadTask(el){
+  document.querySelectorAll('.task-card').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  const tt=el.dataset.task;taskState.type=tt;
+  const taskBehMap={search_rescue:'exploration',area_coverage:'exploration',resource_foraging:'foraging',target_tracking:'consensus',task_allocation:'leader',flocking_obstacle:'flocking'};
+  if(taskBehMap[tt]) setBehavior(taskBehMap[tt]);
+  if(tt==='flocking_obstacle'){sim.params.obstacleCount=12;document.getElementById('pObstacles').value=12;document.getElementById('vObstacles').textContent=12;}
+  initSim();toast('Task: '+tt.replace(/_/g,' ').toUpperCase());
+  log(`Task loaded: ${tt}`,'info');
+}
+
+// ─── EXPORT (live sim) ───────────────────────────────────
+function exportLiveCSV(){
+  const m=collectMetrics();
+  let csv='frame,time,agents,behavior,seed,avgDist,clusters,coverage,phi,entropy,formError\n';
+  csv+=`${sim.frame},${sim.t.toFixed(2)},${agents.length},${sim.behavior},${currentSeed},${m.avgD.toFixed(2)},${m.cl},${m.cov},${m.phi.toFixed(4)},${m.H.toFixed(3)},${m.formErr.toFixed(2)}\n`;
+  download('swarm_snapshot_'+Date.now()+'.csv','text/csv',csv);toast('Snapshot CSV exported');
+}
+function exportLiveJSON(){
+  const m=collectMetrics();
+  const data={meta:{frame:sim.frame,time:sim.t,seed:currentSeed,behavior:sim.behavior},params:{...sim.params},metrics:{...m},agents:agents.map(a=>({id:a.id,x:+a.x.toFixed(2),y:+a.y.toFixed(2),vx:+a.vx.toFixed(3),vy:+a.vy.toFixed(3),heading:+a.heading.toFixed(4),cluster:a.cluster,state:a.state}))};
+  download('swarm_state_'+Date.now()+'.json','application/json',JSON.stringify(data,null,2));toast('State JSON exported');
+}
+
+function download(filename,type,content){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=filename;a.click();
+}
+
+// ─── SCENARIO SAVE/LOAD ──────────────────────────────────
+function saveScenario(){
+  const s={obstacles:obstacles.map(o=>({x:o.x,y:o.y,r:o.r})),movingObs:movingObs.map(o=>({x:o.x,y:o.y,r:o.r,vx:o.vx,vy:o.vy})),params:{...sim.params},behavior:sim.behavior};
+  download('scenario_'+Date.now()+'.json','application/json',JSON.stringify(s,null,2));toast('Scenario saved');
+}
+function loadScenarioPrompt(){
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const s=JSON.parse(ev.target.result);if(s.obstacles) obstacles=s.obstacles;if(s.movingObs) movingObs=s.movingObs;if(s.params) Object.assign(sim.params,s.params);if(s.behavior) setBehavior(s.behavior);syncSliders();toast('Scenario loaded');}catch{toast('Invalid scenario file');}};reader.readAsText(file);};
+  input.click();
+}
+
+// ─── LOGGING ─────────────────────────────────────────────
+function log(msg,type=''){
+  const el=document.getElementById('logArea');
+  const d=document.createElement('div');d.className='log-line '+(type||'');
+  const ts=sim.t.toFixed(1).padStart(7);
+  d.textContent=`[${ts}s] ${msg}`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+  // Keep last 200 lines
+  while(el.children.length>200) el.removeChild(el.firstChild);
+}
+
+// ─── MAIN LOOP ───────────────────────────────────────────
+let lastT=0,fps=60;
+function loop(ts){
+  const dt2=ts-lastT;lastT=ts;fps=fps*.92+(1000/dt2)*.08;
+  const fs=fps.toFixed(0);
+  document.getElementById('hudFps').textContent=fs;
+  document.getElementById('hudFrame').textContent=sim.frame;
+  document.getElementById('hudAgents').textContent=agents.length;
+  document.getElementById('hudTime').textContent=sim.t.toFixed(1);
+  document.getElementById('hAgents').textContent=agents.length;
+  document.getElementById('hFps').textContent=fs;
+  if(sim.running){update();doMetrics();}
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ─── UI WIRING ───────────────────────────────────────────
+function togViz(el){el.classList.toggle('on');const k=el.dataset.viz;sim.viz[k]=el.classList.contains('on');el.querySelector('.vbox').textContent=sim.viz[k]?'✓':'';if(k==='predator'){predator=sim.viz.predator?mkPred():null;}if(k==='wind'){document.getElementById('windCv').style.display=sim.viz.wind?'block':'none';}if(k==='heatmap'){document.getElementById('heatCv').classList.toggle('on',sim.viz.heatmap);}if(k==='trajectories'){if(!sim.viz.trajectories&&trajCtx)trajCtx.clearRect(0,0,trajCv.width,trajCv.height);}if(k==='coverage'){sim.cvTab='coverage';}}
+
+function setBehavior(name){
+  sim.behavior=name;
+  document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('on',b.dataset.beh===name));
+  document.querySelectorAll('.algo-itm').forEach(b=>b.classList.toggle('on',b.querySelector('.algo-nm')&&b.querySelector('.algo-nm').textContent===name));
+  const btn=document.querySelector(`.mbtn[data-beh="${name}"]`);
+  const lbl=btn?btn.querySelector('.mlbl').textContent:name;
+  document.getElementById('hudMode').textContent=lbl.toUpperCase();
+  document.getElementById('ftAlgo').textContent=lbl;
+  updateAlgoUI();
+}
+
+document.querySelectorAll('.mbtn').forEach(btn=>{btn.addEventListener('click',()=>{setBehavior(btn.dataset.beh);if(sim.behavior==='foraging'){resources=[];spawnRes();}if(sim.behavior==='formation')calcFormTargets();if(sim.behavior==='aco'&&pheromone)pheromone.fill(0);toast('Algorithm: '+btn.querySelector('.mlbl').textContent);});});
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));tab.classList.add('on');document.querySelectorAll('.lpane').forEach(p=>p.classList.remove('on'));document.getElementById('pane-'+tab.dataset.lp).classList.add('on');});});
+
+// Canvas view tabs
+function setCvTab(el){document.querySelectorAll('.cvtab').forEach(t=>t.classList.remove('on'));el.classList.add('on');sim.cvTab=el.dataset.cvt;if(sim.cvTab==='trajectories'&&trajCtx)trajCtx.clearRect(0,0,trajCv.width,trajCv.height);if(sim.cvTab==='coverage')sim.viz.formtargets=false;}
+document.querySelectorAll('.cvtab').forEach(btn=>btn.addEventListener('click',()=>setCvTab(btn)));
+
+document.getElementById('formationType').addEventListener('change',e=>{sim.formation=e.target.value;if(sim.behavior==='formation')calcFormTargets();});
+
+// Param sliders
+function bind(id,vid,key,fmt){
+  const sl=document.getElementById(id),vl=document.getElementById(vid);
+  if(!sl) return;
+  sl.addEventListener('input',()=>{const v=parseFloat(sl.value);sim.params[key]=v;vl.textContent=fmt?fmt(v):v;if(key==='agentCount')adjAgents(Math.round(v));if(key==='obstacleCount')adjObs(Math.round(v));if(key==='movingObstacles')adjMovObs(Math.round(v));calcExpStats();});
+}
+bind('pAgents','vAgents','agentCount',v=>Math.round(v));bind('pSense','vSense','senseRadius',v=>Math.round(v));bind('pComm','vComm','commRadius',v=>Math.round(v));bind('pSpeed','vSpeed','maxSpeed',v=>v.toFixed(1));bind('pSep','vSep','separation',v=>v.toFixed(2));bind('pAlign','vAlign','alignment',v=>v.toFixed(2));bind('pCohes','vCohes','cohesion',v=>v.toFixed(2));bind('pNoise','vNoise','noise',v=>v.toFixed(2));bind('pCommFail','vCommFail','commFail',v=>Math.round(v*100)+'%');bind('pCommDelay','vCommDelay','commDelay',v=>Math.round(v));bind('pSensorNoise','vSensorNoise','sensorNoise',v=>v.toFixed(1));
+bind('pObstacles','vObstacles','obstacleCount',v=>Math.round(v));bind('pMovObs','vMovObs','movingObstacles',v=>Math.round(v));
+bind('pWind','vWind','windStrength',v=>v.toFixed(2));bind('pWindDir','vWindDir','windDir',v=>Math.round(v)+'°');bind('pTurb','vTurb','turbulence',v=>v.toFixed(2));
+bind('pCF2','vCF2','commFail',v=>Math.round(v*100)+'%');bind('pCD2','vCD2','commDelay',v=>Math.round(v));bind('pSN2','vSN2','sensorNoise',v=>v.toFixed(1));bind('pGPS','vGPS','gpsError',v=>v.toFixed(1));
+
+function adjAgents(n){while(agents.length<n)agents.push(spawnAgent(agents.length));while(agents.length>n)agents.pop();if(agents.length)agents[0].isLeader=true;}
+function adjObs(n){while(obstacles.length<n)addObs();while(obstacles.length>n)obstacles.pop();}
+function adjMovObs(n){while(movingObs.length<n)addMovObs();while(movingObs.length>n)movingObs.pop();}
+
+document.getElementById('spawnMode').addEventListener('change',e=>{sim.spawnMode=e.target.value;});
+
+// Header buttons
+document.getElementById('btnPause').addEventListener('click',()=>{sim.running=!sim.running;const b=document.getElementById('btnPause');b.textContent=sim.running?'Pause':'Resume';b.classList.toggle('on',sim.running);document.getElementById('rdot').classList.toggle('p',!sim.running);document.getElementById('rlbl').textContent=sim.running?'Live':'Paused';document.getElementById('ftStat').textContent=sim.running?'SIMULATION RUNNING':'SIMULATION PAUSED';});
+document.getElementById('btnStep').addEventListener('click',()=>{if(!sim.running){update();render();}});
+document.getElementById('btnReset').addEventListener('click',()=>{initSim();toast('Simulation reset');});
+document.getElementById('btnNewSeed').addEventListener('click',()=>{currentSeed=Math.floor(Math.random()*99999)+1;initSim(currentSeed);toast('New seed: '+currentSeed);});
+document.getElementById('btnExportCSV').addEventListener('click',exportLiveCSV);
+document.getElementById('btnExportJSON').addEventListener('click',exportLiveJSON);
+document.getElementById('btnSave').addEventListener('click',()=>{document.getElementById('cfgText').value=JSON.stringify({behavior:sim.behavior,formation:sim.formation,params:sim.params,seed:currentSeed,task:taskState.type},null,2);document.getElementById('cfgModal').classList.add('open');});
+document.getElementById('btnLoad').addEventListener('click',()=>{document.getElementById('cfgText').value='';document.getElementById('cfgModal').classList.add('open');});
+document.getElementById('btnImport').addEventListener('click',()=>{try{const c=JSON.parse(document.getElementById('cfgText').value);if(c.params)Object.assign(sim.params,c.params);if(c.behavior)setBehavior(c.behavior);if(c.formation){sim.formation=c.formation;document.getElementById('formationType').value=c.formation;}if(c.seed){currentSeed=c.seed;}if(c.task){taskState.type=c.task;}syncSliders();document.getElementById('cfgModal').classList.remove('open');initSim();toast('Config imported');}catch(e){toast('Invalid JSON');}});
+
+// Canvas click
+canvas.addEventListener('click',e=>{
+  const rc=canvas.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top;
+  if(e.shiftKey){sim.viz.predator=true;predator={x:mx,y:my,vx:1,vy:.5,speed:3.2};document.querySelectorAll('.vitm[data-viz="predator"]').forEach(el=>{el.classList.add('on');el.querySelector('.vbox').textContent='✓';});toast('Predator spawned');return;}
+  let hit=null;for(const a of agents){if(Math.hypot(a.x-mx,a.y-my)<14){hit=a;break;}}
+  if(hit){selAgent=hit;return;}selAgent=null;
+  addObs(mx,my);sim.params.obstacleCount=obstacles.length;
+  const el=document.getElementById('pObstacles');if(el)el.value=obstacles.length;
+  document.getElementById('vObstacles').textContent=obstacles.length;
+});
+canvas.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const rc=canvas.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top;
+  let minD=Infinity,minI=-1;
+  obstacles.forEach((o,i)=>{const d=Math.hypot(o.x-mx,o.y-my);if(d<minD){minD=d;minI=i;}});
+  if(minI>=0&&minD<60){obstacles.splice(minI,1);sim.params.obstacleCount=obstacles.length;toast('Obstacle removed');}
+});
+
+// Presets
+function loadPreset(name){
+  const P={
+    murmuration:{behavior:'flocking',formation:'circle',params:{agentCount:300,senseRadius:55,commRadius:80,maxSpeed:2.5,separation:1.2,alignment:1.8,cohesion:.8,noise:.08,commFail:0}},
+    army_ants:{behavior:'foraging',formation:'circle',params:{agentCount:200,senseRadius:40,commRadius:60,maxSpeed:1.8,separation:1,alignment:.8,cohesion:1.2,noise:.12,obstacleCount:5,commFail:0}},
+    fish_school:{behavior:'flocking',formation:'circle',params:{agentCount:250,senseRadius:45,commRadius:70,maxSpeed:2.2,separation:2,alignment:1.5,cohesion:1.3,noise:.03,commFail:0}},
+    drone_swarm:{behavior:'formation',formation:'grid',params:{agentCount:100,senseRadius:70,commRadius:120,maxSpeed:1.5,separation:1.8,alignment:.5,cohesion:2.5,noise:.02,commFail:0}},
+    scatter_reform:{behavior:'splitting',formation:'circle',params:{agentCount:150,senseRadius:60,commRadius:100,maxSpeed:2.8,separation:1.5,alignment:1,cohesion:1.8,noise:.06,commFail:0}},
+    predator_flee:{behavior:'flocking',formation:'circle',params:{agentCount:180,senseRadius:80,commRadius:110,maxSpeed:3,separation:2.5,alignment:1.5,cohesion:.6,noise:.04,commFail:0}},
+    search_rescue:{behavior:'exploration',formation:'circle',params:{agentCount:80,senseRadius:100,commRadius:150,maxSpeed:2,separation:2.5,alignment:.3,cohesion:.2,noise:.15,obstacleCount:8,commFail:.1}},
+    consensus_demo:{behavior:'consensus',formation:'circle',params:{agentCount:120,senseRadius:60,commRadius:90,maxSpeed:1.5,separation:1.2,alignment:2.5,cohesion:.5,noise:.02,commFail:0}},
+    vicsek_phase:{behavior:'vicsek',formation:'circle',params:{agentCount:200,senseRadius:50,commRadius:70,maxSpeed:2,separation:.8,alignment:2.0,cohesion:.3,noise:.4,commFail:0}},
+    pso_demo:{behavior:'pso',formation:'circle',params:{agentCount:80,senseRadius:80,commRadius:120,maxSpeed:2.5,separation:.5,alignment:1.5,cohesion:2,noise:.05,commFail:0}},
+  };
+  const p=P[name];if(!p)return;
+  Object.assign(sim.params,p.params);sim.behavior=p.behavior;sim.formation=p.formation;
+  if(name==='predator_flee'){sim.viz.predator=true;document.querySelectorAll('.vitm[data-viz="predator"]').forEach(el=>{el.classList.add('on');el.querySelector('.vbox').textContent='✓';});}
+  setBehavior(sim.behavior);
+  document.getElementById('formationType').value=sim.formation;
+  syncSliders();initSim();
+  toast('Preset: '+name.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
+}
+
+function syncSliders(){
+  const map={agentCount:'pAgents',senseRadius:'pSense',commRadius:'pComm',maxSpeed:'pSpeed',separation:'pSep',alignment:'pAlign',cohesion:'pCohes',noise:'pNoise',obstacleCount:'pObstacles',commFail:'pCommFail',commDelay:'pCommDelay',sensorNoise:'pSensorNoise',movingObstacles:'pMovObs',windStrength:'pWind',windDir:'pWindDir',turbulence:'pTurb',gpsError:'pGPS'};
+  for(const[k,id] of Object.entries(map)){const el=document.getElementById(id);if(el&&sim.params[k]!==undefined){el.value=sim.params[k];el.dispatchEvent(new Event('input'));}}
+}
+
+// Toast
+let toastTmr=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTmr);toastTmr=setTimeout(()=>el.classList.remove('show'),2400);}
+
+// Session
+document.getElementById('sessId').textContent='SIM-'+String(Math.floor(Math.random()*9000)+1000);
+
+// Experiment stats on load
+calcExpStats();
+
+// Boot
+window.addEventListener('resize',()=>{resize();initSim();});
+resize();initSim();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
